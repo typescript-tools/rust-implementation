@@ -12,8 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_json;
 
-// TODO: only write file when changes are made
-
 #[derive(Parser)]
 #[clap(version = "1.0", author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
 struct Opts {
@@ -76,43 +74,47 @@ fn read_lerna_package_manifests(root: &Path, lerna_manifest: &LernaManifest) -> 
 }
 
 fn get_version_by_name(internal_packages: &HashMap<String, PackageManifest>) -> HashMap<String, String> {
-    return internal_packages
+    internal_packages
         .values()
         .fold(HashMap::new(), |mut acc, package_manifest| {
             acc.insert(package_manifest.name.to_string(), package_manifest.version.to_string());
             acc
-        });
+        })
 }
 
 fn pin_version_numbers_in_internal_packages(
-    version_by_name: HashMap<String, String>,
     mut internal_packages: HashMap<String, PackageManifest>,
-) -> HashMap<String, PackageManifest> {
+) -> Result<(), Box<dyn Error>> {
 
-    let pin = |package_manifest: &mut PackageManifest, d| {
+    let version_by_name = get_version_by_name(&internal_packages);
+
+    let pin = |package_manifest: &mut PackageManifest, d| -> bool {
+        let mut modified = false;
         if let Some(deps) = package_manifest.extra_fields.get_mut(d).and_then(|v| Value::as_object_mut(v)) {
             for (package, version) in deps.iter_mut() {
                 if let Some(internal_version) = version_by_name.get(package) {
-                    *version = serde_json::Value::String(internal_version.to_string());
+                    if !internal_version.eq(&*version) {
+                        modified = true;
+                        *version = serde_json::Value::String(internal_version.to_string());
+                    }
                 }
             }
         }
+        return modified
     };
 
-    for package_manifest in internal_packages.values_mut() {
-        pin(package_manifest, "dependencies");
-        pin(package_manifest, "devDependencies");
-        pin(package_manifest, "optionalDependencies");
-        pin(package_manifest, "peerDependencies");
+    for (manifest_file, package_manifest) in internal_packages.iter_mut() {
+        let updates = vec![
+            pin(package_manifest, "dependencies"),
+            pin(package_manifest, "devDependencies"),
+            pin(package_manifest, "optionalDependencies"),
+            pin(package_manifest, "peerDependencies"),
+        ];
+        if updates.iter().any(|&update| update) {
+            write_package_manifest(Path::new(manifest_file), package_manifest)?;
+        }
     }
 
-    internal_packages
-}
-
-fn write_lerna_manifests(package_manifests: &HashMap<String, PackageManifest>) -> Result<(), Box<dyn Error>> {
-    for (manifest_file, manifest_contents) in package_manifests {
-        write_package_manifest(Path::new(manifest_file), manifest_contents)?;
-    }
     Ok(())
 }
 
@@ -122,8 +124,6 @@ fn main() {
 
     let lerna_manifest = read_lerna_manifest(&root).expect("Unable to read lerna manifest");
     let package_manifests = read_lerna_package_manifests(&root, &lerna_manifest).expect("Unable to read package manifests");
-    let version_by_name = get_version_by_name(&package_manifests);
 
-    let updated_package_manifests = pin_version_numbers_in_internal_packages(version_by_name, package_manifests);
-    write_lerna_manifests(&updated_package_manifests).expect("Unable to write package manifest");
+    pin_version_numbers_in_internal_packages(package_manifests).expect("Unable to write package manfiests");
 }
