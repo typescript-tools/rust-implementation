@@ -29,7 +29,7 @@ struct PackageManifest {
     name: String,
     version: String,
     #[serde(flatten)]
-    extra_fields: HashMap<String, serde_json::Value>,
+    extra_fields: serde_json::Value,
 }
 
 fn read_lerna_manifest(root: &Path) -> Result<LernaManifest, Box<dyn Error>> {
