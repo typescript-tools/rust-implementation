@@ -31,7 +31,7 @@ pub struct TypeScriptProjectReference {
 }
 
 #[derive(Serialize)]
-pub struct TypeScriptProjectReferences {
+pub struct TypeScriptParentProjectReferences {
     pub files: Vec<String>,
     pub references: Vec<TypeScriptProjectReference>,
 }
@@ -85,7 +85,7 @@ pub fn write_tsconfig<P: AsRef<Path>>(
 
 pub fn write_project_references<P: AsRef<Path>>(
     path: P,
-    references: &TypeScriptProjectReferences,
+    references: &TypeScriptParentProjectReferences,
 ) -> Result<(), Box<dyn Error>> {
     let file = File::create(&path)?;
     let mut writer = BufWriter::new(file);

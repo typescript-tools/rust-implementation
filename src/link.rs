@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use crate::io::{
     get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
     read_tsconfig, write_project_references, write_tsconfig, PackageManifest,
-    TypeScriptProjectReference, TypeScriptProjectReferences,
+    TypeScriptParentProjectReferences, TypeScriptProjectReference,
 };
 
 // Returns a path to an internal package relative to the monorepo root.
@@ -47,12 +47,12 @@ fn key_children_by_parent(
     accumulator
 }
 
-// Serialize the TypeScript project references
-fn create_project_references(children: &mut Vec<String>) -> TypeScriptProjectReferences {
+// Serialize the TypeScript project references.
+fn create_project_references(children: &mut Vec<String>) -> TypeScriptParentProjectReferences {
     // Sort the TypeScript project references for deterministic file contents.
     // This minimizes diffs since the tsconfig.json files are stored in version control.
     children.sort_unstable();
-    TypeScriptProjectReferences {
+    TypeScriptParentProjectReferences {
         files: [].to_vec(),
         references: children
             .iter()
@@ -78,6 +78,7 @@ fn link_children_packages(
         .fold(HashMap::new(), key_children_by_parent)
         .iter_mut()
         .map(|(directory, children)| {
+            // TODO: implement --check
             write_project_references(
                 opts.root.join(directory).join("tsconfig.json"),
                 &create_project_references(children),
