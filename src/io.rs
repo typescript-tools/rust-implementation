@@ -64,6 +64,25 @@ pub fn write_package_manifest<P: AsRef<Path>>(
     Ok(())
 }
 
+pub fn read_tsconfig<P: AsRef<Path>>(path: P) -> Result<serde_json::Value, Box<dyn Error>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let u = serde_json::from_reader(reader)?;
+    Ok(u)
+}
+
+pub fn write_tsconfig<P: AsRef<Path>>(
+    path: P,
+    tsconfig: &serde_json::Value,
+) -> Result<(), Box<dyn Error>> {
+    let file = File::create(path)?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(&mut writer, tsconfig)?;
+    writer.write_all(b"\n")?;
+    writer.flush()?;
+    Ok(())
+}
+
 pub fn write_project_references<P: AsRef<Path>>(
     path: P,
     references: &TypeScriptProjectReferences,
@@ -81,7 +100,6 @@ pub fn get_internal_package_manifest_files<P: AsRef<Path>>(
     lerna_manifest: &LernaManifest,
     ignore_globs: &Vec<String>,
 ) -> Result<Vec<PathBuf>, Box<dyn Error>> {
-    // dawid's tip: use cargo's clippy with rust-analyzer for enlightenment
     // dawid's tip: consider rayon for parallel iterators
 
     let mut package_manifests: Vec<String> = lerna_manifest

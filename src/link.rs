@@ -2,8 +2,13 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
+use pathdiff::diff_paths;
+
+use serde_json::{json, Value};
+
 use crate::io::{
-    get_internal_package_manifest_files, read_lerna_manifest, write_project_references,
+    get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
+    read_tsconfig, write_project_references, write_tsconfig, PackageManifest,
     TypeScriptProjectReference, TypeScriptProjectReferences,
 };
 
@@ -81,9 +86,111 @@ fn link_children_packages(
         .collect::<Result<(), Box<dyn Error>>>()
 }
 
-// fn link_package_dependencies(root: &Path) -> Result<(), Box<dyn Error>> {
-//     Ok(())
-// }
+fn tsconfig_filename<P: AsRef<Path>>(manifest_file: P) -> Result<PathBuf, Box<dyn Error>> {
+    let tsconfig = manifest_file
+        .as_ref()
+        .parent()
+        .ok_or::<Box<dyn Error>>(
+            String::from("Unexpected internal package in monorepo root").into(),
+        )?
+        .join("tsconfig.json");
+    Ok(tsconfig)
+}
+
+// Map scoped internal-package name to relative path from monorepo root.
+fn key_internal_package_directory_by_package_name<P: AsRef<Path>>(
+    root: P,
+    internal_package_manifests: &HashMap<PathBuf, PackageManifest>,
+) -> HashMap<String, PathBuf> {
+    internal_package_manifests.iter().fold(
+        HashMap::with_capacity(internal_package_manifests.len()),
+        |mut acc, (manifest_file, manifest)| {
+            acc.insert(
+                manifest.name.clone(),
+                internal_package_relative_path(&root, manifest_file)
+                    .expect("Unable to create relative path to package from monorepo root"),
+            );
+            acc
+        },
+    )
+}
+
+fn link_package_dependencies(
+    opts: &crate::opts::Link,
+    internal_package_manifest_files: &Vec<PathBuf>,
+) -> Result<(), Box<dyn Error>> {
+    let internal_manifests = read_internal_package_manifests(internal_package_manifest_files)?;
+    let package_directory_by_name =
+        key_internal_package_directory_by_package_name(&opts.root, &internal_manifests);
+
+    let get_dependency_group = |package_manifest: &PackageManifest,
+                                dependency_group: &str|
+     -> serde_json::Map<String, serde_json::Value> {
+        package_manifest
+            .extra_fields
+            .get(dependency_group)
+            .and_then(|v| Value::as_object(v).cloned())
+            .unwrap_or(serde_json::Map::new())
+    };
+
+    internal_package_manifest_files
+        .iter()
+        .map(|manifest_file| -> Result<(), Box<dyn Error>> {
+            let package_directory = manifest_file.parent().ok_or::<Box<dyn Error>>(
+                String::from("Unexpected internal package in monorepo root").into(),
+            )?;
+            let tsconfig_file = tsconfig_filename(manifest_file)?;
+            let mut tsconfig = read_tsconfig(&tsconfig_file)?;
+            let manifest = internal_manifests
+                .get(manifest_file)
+                .ok_or::<Box<dyn Error>>(
+                    String::from("Failed to lookup package by manifest path").into(),
+                )?;
+
+            let desired_project_references: serde_json::Value = {
+                let mut deps = get_dependency_group(manifest, "dependencies")
+                    .iter()
+                    .chain(get_dependency_group(manifest, "devDependencies").iter())
+                    .chain(get_dependency_group(manifest, "optionalDependencies").iter())
+                    .chain(get_dependency_group(manifest, "peerDependencies").iter())
+                    .filter_map(|(name, _version)| package_directory_by_name.get(name).cloned())
+                    .map(|dependency_directory| {
+                        diff_paths(&opts.root.join(dependency_directory), package_directory)
+                            .ok_or::<Box<dyn Error>>(String::from("Unable to calculate relative path between consuming directory and internal dependency").into())
+                    })
+                .collect::<Result<Vec<_>, _>>()?;
+                deps.sort_unstable();
+
+                let deps_to_write = serde_json::Value::Array(deps
+                    .iter()
+                    .map(|dep| {
+                        json!({
+                            "path": dep.to_str().expect("Path not valid UTF-8 encoded").to_string()
+                        })
+                    })
+                    .collect::<Vec<_>>());
+
+                deps_to_write
+            };
+
+            // Compare the current references against the desired references
+            let needs_update = !desired_project_references.eq(
+                tsconfig.get("references").unwrap_or(&serde_json::Value::Array(vec![]))
+            );
+            if !needs_update {
+                return Ok(());
+            }
+
+            let new_tsconfig = tsconfig
+                .as_object_mut()
+                .ok_or::<Box<dyn Error>>(String::from("Expected tsconfig.json to contain an Object").into())?;
+            new_tsconfig.insert(String::from("references"), desired_project_references);
+
+            write_tsconfig(tsconfig_file, &tsconfig)
+        })
+    .collect::<Result<Vec<_>, _>>()?;
+    Ok(())
+}
 
 pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(), Box<dyn Error>> {
     let lerna_manifest = read_lerna_manifest(&opts.root).expect("Unable to read lerna manifest");
@@ -93,6 +200,12 @@ pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(),
 
     link_children_packages(&opts, &internal_package_manifest_files)
         .expect("Unable to link children packages");
+    link_package_dependencies(&opts, &internal_package_manifest_files)
+        .expect("Unable to link internal package dependencies");
+
+    // TODO: implement --check
+
+    // STRETCH TODO: create `tsconfig.settings.json` files
 
     Ok(())
 }
