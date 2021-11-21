@@ -1,0 +1,96 @@
+---
+name: Release
+
+on:
+  push:
+    branches: [ master, alpha, beta ]
+
+jobs:
+  build-linux-gnu:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install GNU/Linux toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-unknown-linux-gnu
+
+    - name: Build GNU/Linux
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target x86_64-unknown-linux-gnu
+
+    - name: Prepare GNU/Linux artifacts
+      run: |
+        mkdir -p dist builds/typescript-tools-linux
+        cp target/x86_64-unknown-linux-gnu/release/rust_typescript_tools builds/typescript-tools-linux-gnu
+        tar -C builds -czvf dist/typescript-tools-linux-gnu.tar.gz typescript-tools-linux-gnu
+
+    - name: Upload GNU/Linux artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: x86_64-unknown-linux-gnu
+        path: dist/typescript-tools-linux-gnu.tar.gz
+
+  build-darwin:
+    runs-on: macos-11
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Mac OS toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-apple-darwin
+
+    - name: Build Mac OS
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target x86_64-apple-darwin
+
+    - name: Prepare Mac OS artifacts
+      run: |
+        mkdir -p dist builds/typescript-tools-apple-darwin
+        cp target/x86_64-apple-darwin/release/rust_typescript_tools builds/typescript-tools-apple-darwin
+        tar -C builds -czvf dist/typescript-tools-apple-darwin.tar.gz typescript-tools-apple-darwin
+
+    - name: Upload Mac OS artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: x86_64-apple-darwin
+        path: dist/typescript-tools-apple-darwin.tar.gz
+
+  release:
+    needs: [ build-linux-gnu, build-darwin ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Download GNU/Linux artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: x86_64-unknown-linux-gnu
+        path: dist/typescript-tools-linux-gnu.tar.gz
+
+    - name: Download Mac OS artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: x86_64-apple-darwin
+        path: dist/typescript-tools-apple-darwin.tar.gz
+
+    - name: Install release dependencies
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN }}
+      run: |
+        npm install
+        npx semantic-release
+

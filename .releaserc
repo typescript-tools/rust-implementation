@@ -1,0 +1,26 @@
+{
+  "branches": [
+    "master",
+    "alpha",
+    "beta"
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "dist/typescript-tools-linux-gnu.tar.gz",
+            "label": "x86_64-unknown-linux-gnu"
+          },
+          {
+            "path": "dist/typescript-tools-apple-darwin.tar.gz",
+            "label": "x86_64-apple-darwin"
+          }
+        ]
+      }
+    ]
+  ]
+}
