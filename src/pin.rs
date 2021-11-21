@@ -12,6 +12,7 @@ use crate::io::{
 
 #[derive(Clone)]
 struct UnpinnedDependency {
+    name: String,
     actual: String,
     expected: String,
 }
@@ -59,6 +60,7 @@ pub fn pin_version_numbers_in_internal_packages(
                     if let Some(internal_version) = version_by_name.get(package) {
                         if !internal_version.eq(&*version) {
                             modified.push(UnpinnedDependency {
+                                name: package.to_string(),
                                 actual: (*version).to_string(),
                                 expected: internal_version.to_string(),
                             });
@@ -90,8 +92,8 @@ pub fn pin_version_numbers_in_internal_packages(
                 );
                 for dependency in updated_packages {
                     println!(
-                        "\texpected: \"{}\", got: {}",
-                        dependency.expected, dependency.actual
+                        "\tdependency: {:?}\texpected: {:?}\tgot: {}",
+                        dependency.name, dependency.expected, dependency.actual
                     );
                 }
             } else {
