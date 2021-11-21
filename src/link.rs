@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use pathdiff::diff_paths;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::io::{
     get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
@@ -63,12 +63,19 @@ fn create_project_references(children: &mut Vec<String>) -> TypeScriptParentProj
     }
 }
 
+fn vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
+    let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
+    matching == a.len() && matching == b.len()
+}
+
 // Create a tsconfig.json file in each parent directory to an internal package.
 // This permits us to build the monorepo from the top down.
 fn link_children_packages(
     opts: &crate::opts::Link,
     internal_package_manifest_files: &Vec<PathBuf>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<bool, Box<dyn Error>> {
+    let mut is_exit_success = true;
+
     internal_package_manifest_files
         .iter()
         .map(|manifest_file| internal_package_relative_path(&opts.root, manifest_file))
@@ -77,14 +84,43 @@ fn link_children_packages(
         // Create the data structure representing child TypeScript project references
         .fold(HashMap::new(), key_children_by_parent)
         .iter_mut()
-        .map(|(directory, children)| {
-            // TODO: implement --check
-            write_project_references(
-                opts.root.join(directory).join("tsconfig.json"),
-                &create_project_references(children),
-            )
+        .map(|(directory, children)| -> Result<(), Box<dyn Error>> {
+            let desired_project_references = create_project_references(children);
+            let tsconfig_filename = opts.root.join(directory).join("tsconfig.json");
+            let current_project_references = read_tsconfig(&tsconfig_filename)
+                .map(|contents| {
+                    contents
+                        .get("references")
+                        .map(|value| {
+                            serde_json::from_value::<Vec<TypeScriptProjectReference>>(value.clone())
+                                .expect("Value starting as json should be serializable")
+                        })
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default();
+            let needs_update = !vecs_match(
+                &current_project_references,
+                &desired_project_references.references,
+            );
+            if !needs_update {
+                return Ok(());
+            }
+            if opts.check_only {
+                is_exit_success = false;
+                let serialized = serde_json::to_string_pretty(&desired_project_references)?;
+                println!(
+                    "File has out-of-date project references: {:?}, expecting:",
+                    tsconfig_filename
+                );
+                println!("{}", serialized);
+                Ok(())
+            } else {
+                write_project_references(tsconfig_filename, &desired_project_references)
+            }
         })
-        .collect::<Result<(), Box<dyn Error>>>()
+        .collect::<Result<(), Box<dyn Error>>>()?;
+
+    Ok(is_exit_success)
 }
 
 fn tsconfig_filename<P: AsRef<Path>>(manifest_file: P) -> Result<PathBuf, Box<dyn Error>> {
@@ -119,7 +155,7 @@ fn key_internal_package_directory_by_package_name<P: AsRef<Path>>(
 fn link_package_dependencies(
     opts: &crate::opts::Link,
     internal_package_manifest_files: &Vec<PathBuf>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<bool, Box<dyn Error>> {
     let internal_manifests = read_internal_package_manifests(internal_package_manifest_files)?;
     let package_directory_by_name =
         key_internal_package_directory_by_package_name(&opts.root, &internal_manifests);
@@ -134,9 +170,9 @@ fn link_package_dependencies(
             .unwrap_or(serde_json::Map::new())
     };
 
-    internal_package_manifest_files
+    let tsconfig_diffs = internal_package_manifest_files
         .iter()
-        .map(|manifest_file| -> Result<(), Box<dyn Error>> {
+        .map(|manifest_file| -> Result<Option<(PathBuf, serde_json::Value)>, Box<dyn Error>> {
             let package_directory = manifest_file.parent().ok_or::<Box<dyn Error>>(
                 String::from("Unexpected internal package in monorepo root").into(),
             )?;
@@ -148,7 +184,7 @@ fn link_package_dependencies(
                     String::from("Failed to lookup package by manifest path").into(),
                 )?;
 
-            let desired_project_references: serde_json::Value = {
+            let desired_project_references: Vec<TypeScriptProjectReference> = {
                 let mut deps = get_dependency_group(manifest, "dependencies")
                     .iter()
                     .chain(get_dependency_group(manifest, "devDependencies").iter())
@@ -162,35 +198,62 @@ fn link_package_dependencies(
                 .collect::<Result<Vec<_>, _>>()?;
                 deps.sort_unstable();
 
-                let deps_to_write = serde_json::Value::Array(deps
+                let deps_to_write = deps
                     .iter()
                     .map(|dep| {
-                        json!({
-                            "path": dep.to_str().expect("Path not valid UTF-8 encoded").to_string()
-                        })
+                        TypeScriptProjectReference {
+                            path: dep.to_str().expect("Path not valid UTF-8 encoded").to_string()
+                        }
                     })
-                    .collect::<Vec<_>>());
+                    .collect::<Vec<_>>();
 
                 deps_to_write
             };
 
             // Compare the current references against the desired references
-            let needs_update = !desired_project_references.eq(
-                tsconfig.get("references").unwrap_or(&serde_json::Value::Array(vec![]))
+            let needs_update = !vecs_match(
+                &desired_project_references,
+                &tsconfig.get("references")
+                .map(|value| serde_json::from_value::<Vec<TypeScriptProjectReference>>(value.clone()).expect("Value starting as json should be serializable"))
+                .unwrap_or_default(),
             );
             if !needs_update {
-                return Ok(());
+                return Ok(None);
             }
 
-            let new_tsconfig = tsconfig
+            // Update the current tsconfig with the desired references
+            tsconfig
                 .as_object_mut()
-                .ok_or::<Box<dyn Error>>(String::from("Expected tsconfig.json to contain an Object").into())?;
-            new_tsconfig.insert(String::from("references"), desired_project_references);
+                .ok_or::<Box<dyn Error>>(String::from("Expected tsconfig.json to contain an Object").into())?
+                .insert(String::from("references"), serde_json::to_value(desired_project_references)?);
 
-            write_tsconfig(tsconfig_file, &tsconfig)
+            Ok(Some((tsconfig_file, tsconfig)))
         })
     .collect::<Result<Vec<_>, _>>()?;
-    Ok(())
+
+    let mut is_exit_success = true;
+
+    // take action on the computed diffs
+    tsconfig_diffs
+        .iter()
+        .filter_map(|update| update.as_ref())
+        .map(|(tsconfig_file, contents)| -> Result<(), Box<dyn Error>> {
+            if opts.check_only {
+                is_exit_success = false;
+                let serialized = serde_json::to_string_pretty(contents)?;
+                println!(
+                    "File has out-of-date project references: {:?}, expecting:",
+                    tsconfig_file
+                );
+                println!("{}", serialized);
+                Ok(())
+            } else {
+                write_tsconfig(tsconfig_file, contents)
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(is_exit_success)
 }
 
 pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(), Box<dyn Error>> {
@@ -199,12 +262,16 @@ pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(),
         get_internal_package_manifest_files(&opts.root, &lerna_manifest, &opts.ignore)
             .expect("Unable to enumerate internal package manifests");
 
-    link_children_packages(&opts, &internal_package_manifest_files)
+    let is_children_link_success = link_children_packages(&opts, &internal_package_manifest_files)
         .expect("Unable to link children packages");
-    link_package_dependencies(&opts, &internal_package_manifest_files)
-        .expect("Unable to link internal package dependencies");
 
-    // TODO: implement --check
+    let is_dependencies_link_success =
+        link_package_dependencies(&opts, &internal_package_manifest_files)
+            .expect("Unable to link internal package dependencies");
+
+    if opts.check_only && !(is_children_link_success && is_dependencies_link_success) {
+        return Err("Found out-of-date project references")?;
+    }
 
     // STRETCH TODO: create `tsconfig.settings.json` files
 

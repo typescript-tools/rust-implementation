@@ -25,12 +25,12 @@ pub struct PackageManifest {
     pub extra_fields: Value,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct TypeScriptProjectReference {
     pub path: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 pub struct TypeScriptParentProjectReferences {
     pub files: Vec<String>,
     pub references: Vec<TypeScriptProjectReference>,
