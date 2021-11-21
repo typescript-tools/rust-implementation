@@ -19,7 +19,7 @@ pub enum ClapSubCommand {
 
 #[derive(Parser)]
 pub struct Link {
-    #[clap(short, long, about = "Path to monorepo root")]
+    #[clap(short, long, about = "Path to monorepo root", default_value = ".")]
     pub root: PathBuf,
     #[clap(
         long = "ignore",
@@ -36,7 +36,7 @@ pub struct Link {
 
 #[derive(Parser)]
 pub struct Pin {
-    #[clap(short, long, about = "Path to monorepo root")]
+    #[clap(short, long, about = "Path to monorepo root", default_value = ".")]
     pub root: PathBuf,
     #[clap(
         long = "ignore",
