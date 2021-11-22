@@ -20,11 +20,11 @@ RUN cargo build --release --target x86_64-unknown-linux-musl && \
 COPY ./src ./src
 
 # build for release
-RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/rust_typescript_tools* && \
+RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/monorepo* && \
     cargo build --release --target x86_64-unknown-linux-musl
 
 FROM scratch
-COPY --from=build-image /rust-implementation/target/x86_64-unknown-linux-musl/release/rust_typescript_tools /usr/bin/typescript-tools
+COPY --from=build-image /rust-implementation/target/x86_64-unknown-linux-musl/release/monorepo /usr/bin/monorepo
 WORKDIR /workdir
-ENTRYPOINT ["/usr/bin/typescript-tools"]
+ENTRYPOINT ["/usr/bin/monorepo"]
 CMD [""]
