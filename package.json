@@ -1,7 +1,28 @@
 {
+  "name": "@typescript-tools/rust-implementation",
+  "version": "1.0.1",
+  "repository": {
+    "url": "https://github.com/typescript-tools/rust-implementation"
+  },
+  "scripts": {
+    "postinstall": "node npm/install.js"
+  },
+  "dependenciesS": {
+    "axios": "^0.21.1",
+    "rimraf": "^3.0.2",
+    "tar": "^6.1.0"
+  },
   "devDependencies": {
     "@semantic-release/git": "^10.0.0",
     "@semantic-release/github": "^8.0.0",
     "semantic-release": "^18.0.0"
+  },
+  "files": [
+    "npm/"
+  ],
+  "dependencies": {
+    "axios": "^0.24.0",
+    "rimraf": "^3.0.2",
+    "tar": "^6.1.11"
   }
 }
