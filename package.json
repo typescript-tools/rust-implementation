@@ -1,6 +1,9 @@
 {
   "name": "@typescript-tools/rust-implementation",
-  "version": "1.0.1",
+  "version": "0.0.0-semantically-released",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "url": "https://github.com/typescript-tools/rust-implementation"
   },
