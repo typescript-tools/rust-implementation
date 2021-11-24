@@ -5,9 +5,22 @@ on:
   push:
     branches: [ master, alpha, beta ]
 
+# RESUME:
+# we have cross-compilation working!
+#
+# NEXT:
+# - run all the compilation in the context of the semantic-release flow
+#
+# NOTES:
+# - Semantic release is built around the following ideas...
+#   - https://github.com/semantic-release/semantic-release/issues/753#issuecomment-384689034
+
 jobs:
-  build-linux-gnu:
+  release:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      BINARY_NAME: monorepo
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -25,94 +38,124 @@ jobs:
         command: build
         args: --release --target x86_64-unknown-linux-gnu
 
-    - name: Prepare GNU/Linux artifacts
-      run: |
-        mkdir -p dist builds/typescript-tools-x86_64-unknown-linux-gnu
-        cp target/x86_64-unknown-linux-gnu/release/monorepo builds/typescript-tools-x86_64-unknown-linux-gnu/
-        tar -C builds -czvf dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz typescript-tools-x86_64-unknown-linux-gnu
-
-    - name: Upload GNU/Linux artifact
-      uses: actions/upload-artifact@v2
+    # Perform cross-compilation after the native compilation. The docker image bungles
+    # ownership of the `.cargo` directory, leading to errors like the following:
+    # ```
+    # error: failed to open: /home/runner/work/rust-implementation/rust-implementation/target/release/.cargo-lock
+    # ```
+    - name: Build-musl macOS x86
+      uses: shogan/rust-musl-action@master
       with:
-        name: x86_64-unknown-linux-gnu
-        path: dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz
+        args: cargo build --release --target x86_64-apple-darwin
 
-  build-darwin:
-    runs-on: macos-11
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
 
-    - name: Install Mac OS toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        target: x86_64-apple-darwin
+  # build-linux-gnu:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
 
-    - name: Build Mac OS
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release --target x86_64-apple-darwin
+  #   - name: Install GNU/Linux toolchain
+  #     uses: actions-rs/toolchain@v1
+  #     with:
+  #       profile: minimal
+  #       toolchain: stable
+  #       target: x86_64-unknown-linux-gnu
 
-    - name: Prepare Mac OS artifacts
-      run: |
-        mkdir -p dist builds/typescript-tools-x86_64-apple-darwin
-        cp target/x86_64-apple-darwin/release/monorepo builds/typescript-tools-x86_64-apple-darwin/
-        tar -C builds -czvf dist/typescript-tools-x86_64-apple-darwin.tar.gz typescript-tools-x86_64-apple-darwin
+  #   - name: Build GNU/Linux
+  #     uses: actions-rs/cargo@v1
+  #     with:
+  #       command: build
+  #       args: --release --target x86_64-unknown-linux-gnu
 
-    - name: Upload Mac OS artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: x86_64-apple-darwin
-        path: dist/typescript-tools-x86_64-apple-darwin.tar.gz
+  #   - name: Prepare GNU/Linux artifacts
+  #     run: |
+  #       mkdir -p dist builds/typescript-tools-x86_64-unknown-linux-gnu
+  #       cp target/x86_64-unknown-linux-gnu/release/monorepo builds/typescript-tools-x86_64-unknown-linux-gnu/
+  #       tar -C builds -czvf dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz typescript-tools-x86_64-unknown-linux-gnu
 
-  release-github-npm:
-    needs: [ build-linux-gnu, build-darwin ]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+  #   - name: Upload GNU/Linux artifact
+  #     uses: actions/upload-artifact@v2
+  #     with:
+  #       name: x86_64-unknown-linux-gnu
+  #       path: dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz
 
-    - name: Download GNU/Linux artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: x86_64-unknown-linux-gnu
-        path: dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz
+  # build-darwin:
+  #   runs-on: macos-11
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
 
-    - name: Download Mac OS artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: x86_64-apple-darwin
-        path: dist/typescript-tools-x86_64-apple-darwin.tar.gz
+  #   - name: Install Mac OS toolchain
+  #     uses: actions-rs/toolchain@v1
+  #     with:
+  #       profile: minimal
+  #       toolchain: stable
+  #       target: x86_64-apple-darwin
 
-    - name: Install release dependencies
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: |
-        npm ci --ignore-scripts
-        npx semantic-release
+  #   - name: Build Mac OS
+  #     uses: actions-rs/cargo@v1
+  #     with:
+  #       command: build
+  #       args: --release --target x86_64-apple-darwin
 
-  release-docker:
-    needs: [ build-linux-gnu, build-darwin ]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Configure Docker Buildx
-      uses: docker/setup-buildx-action@v1
+  #   - name: Prepare Mac OS artifacts
+  #     run: |
+  #       mkdir -p dist builds/typescript-tools-x86_64-apple-darwin
+  #       cp target/x86_64-apple-darwin/release/monorepo builds/typescript-tools-x86_64-apple-darwin/
+  #       tar -C builds -czvf dist/typescript-tools-x86_64-apple-darwin.tar.gz typescript-tools-x86_64-apple-darwin
 
-    - name: Login to DockerHub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
+  #   - name: Upload Mac OS artifact
+  #     uses: actions/upload-artifact@v2
+  #     with:
+  #       name: x86_64-apple-darwin
+  #       path: dist/typescript-tools-x86_64-apple-darwin.tar.gz
 
-    - name: Build and push
-      id: docker_build
-      uses: docker/build-push-action@v2
-      with:
-        push: true
-        # TODO(3): tag docker image with release version number
-        tags: hamroctopus/typescript-tools:latest
+  # release-github-npm:
+  #   needs: [ build-linux-gnu, build-darwin ]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+
+  #   - name: Download GNU/Linux artifact
+  #     uses: actions/download-artifact@v2
+  #     with:
+  #       name: x86_64-unknown-linux-gnu
+  #       path: dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz
+
+  #   - name: Download Mac OS artifact
+  #     uses: actions/download-artifact@v2
+  #     with:
+  #       name: x86_64-apple-darwin
+  #       path: dist/typescript-tools-x86_64-apple-darwin.tar.gz
+
+  #   - name: Run semantic-release
+  #     env:
+  #       GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN }}
+  #       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  #     run: |
+  #       npm ci --ignore-scripts
+  #       npx semantic-release
+
+  # release-docker:
+  #   needs: [ build-linux-gnu, build-darwin ]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Configure Docker Buildx
+  #     uses: docker/setup-buildx-action@v1
+
+  #   - name: Login to DockerHub
+  #     uses: docker/login-action@v1
+  #     with:
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_TOKEN }}
+
+  #   - name: Build and push
+  #     id: docker_build
+  #     uses: docker/build-push-action@v2
+  #     with:
+  #       push: true
+  #       # TODO(3): tag docker image with release version number
+  #       tags: hamroctopus/typescript-tools:latest
 
