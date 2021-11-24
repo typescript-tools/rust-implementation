@@ -23,7 +23,7 @@
           "{major}.{minor}-latest"
         ],
         "dockerImage": "hamroctopus/typescript-tools",
-        "dockerFile": "Dockerfile",
+        "dockerProject": null,
         "dockerLogin": false
       }
     ],
