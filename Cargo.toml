@@ -1,6 +1,6 @@
 [package]
 name = "rust_typescript_tools"
-version = "1.0.0"
+version = "0.0.0-semantically-released"
 edition = "2021"
 
 [[bin]]
