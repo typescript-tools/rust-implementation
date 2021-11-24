@@ -19,11 +19,46 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      CARGO_TERM_COLOR: always
       BINARY_NAME: monorepo
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Install macOS cross-compilation dependencies
+      run: |
+        sudo apt update
+        sudo apt install --yes \
+          g++ \
+          gcc \
+          libgmp-dev \
+          libmpc-dev \
+          libmpfr-dev \
+          libssl-dev \
+          libxml2-dev \
+          zlib1g-dev
+
+    - uses: actions/cache@v2
+      id: cache-osxcross
+      with:
+        path: |
+          ~/osxcross
+        key: ${{ runner.os }}-osxcross-${{ hashFiles('$GITHUB_WORKSPACE/ci/resource-macos-sdk') }}
+
+    - name: Install osxcross
+      if: steps.cache-osxcross.outputs.cache-hit != 'true'
+      run: |
+        sdk=$(cat $GITHUB_WORKSPACE/ci/resource-macos-sdk)
+        git clone https://github.com/tpoechtrager/osxcross ~/osxcross
+        pushd ~/osxcross
+        curl -O $sdk
+        mv $(basename $sdk) tarballs/
+        UNATTENDED=yes OSX_VERSION_MIN=10.7 ./build.sh
+        popd
+
+    - name: Add macOS cross-compilation binaries to path
+      run: echo "$HOME/osxcross/target/bin" >> $GITHUB_PATH
 
     - name: Install GNU/Linux toolchain
       uses: actions-rs/toolchain@v1
@@ -31,6 +66,12 @@ jobs:
         profile: minimal
         toolchain: stable
         target: x86_64-unknown-linux-gnu
+
+    - name: Install macOS toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-apple-darwin
 
     - uses: actions/cache@v2
       id: cache-cargo

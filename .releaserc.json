@@ -10,12 +10,6 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "docker run --rm hello-world"
-      }
-    ],
-    [
-      "@semantic-release/exec",
-      {
         "prepareCmd": "semantic-release-rust prepare ${nextRelease.version}"
       }
     ],
@@ -23,6 +17,12 @@
       "@semantic-release/exec",
       {
         "prepareCmd": "cargo build --release --target x86_64-unknown-linux-gnu"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "OPENSSL_LIB_DIR=/usr/local/ssl/lib OPENSSL_INCLUDE_DIR=/usr/local/ssl/include OPENSSL_STATIC=1 PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target x86_64-apple-darwin"
       }
     ]
   ]
