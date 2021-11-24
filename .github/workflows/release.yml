@@ -32,22 +32,35 @@ jobs:
         toolchain: stable
         target: x86_64-unknown-linux-gnu
 
-    - name: Build GNU/Linux
+    - name: Install semantic-release-rust
       uses: actions-rs/cargo@v1
       with:
-        command: build
-        args: --release --target x86_64-unknown-linux-gnu
+        command: install
+        args: semantic-release-rust --version 1.0.0-alpha.8
+
+    - name: Invoke semantic-release
+      run: |
+        npm ci --ignore-scripts
+        npx semantic-release
+
+    # TODO: invoke this via @semantic-release/exec
+    # - name: Build GNU/Linux
+    #   uses: actions-rs/cargo@v1
+    #   with:
+    #     command: build
+    #     args: --release --target x86_64-unknown-linux-gnu
 
     # Perform cross-compilation after the native compilation. The docker image bungles
     # ownership of the `.cargo` directory, leading to errors like the following:
     # ```
     # error: failed to open: /home/runner/work/rust-implementation/rust-implementation/target/release/.cargo-lock
     # ```
-    - name: Build-musl macOS x86
-      uses: shogan/rust-musl-action@master
-      with:
-        args: cargo build --release --target x86_64-apple-darwin
-
+    # TODO: invoke this via @semantic-release/exec
+    #    - name: Build-musl macOS x86
+    #      uses: shogan/rust-musl-action@master
+    #      with:
+    #        args: cargo build --release --target x86_64-apple-darwin
+    #
 
   # build-linux-gnu:
   #   runs-on: ubuntu-latest
