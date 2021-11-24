@@ -10,6 +10,12 @@
     [
       "@semantic-release/exec",
       {
+        "prepareCmd": "docker run --rm hello-world"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
         "prepareCmd": "semantic-release-rust prepare ${nextRelease.version}"
       }
     ],
