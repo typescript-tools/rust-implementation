@@ -7,6 +7,18 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "semantic-release-rust prepare ${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "cargo build --release --target x86_64-unknown-linux-gnu"
+      }
+    ],
     "@semantic-release/npm",
     [
       "@semantic-release/github",
