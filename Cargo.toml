@@ -1,9 +1,11 @@
 [package]
 name = "rust_typescript_tools"
-version = "0.1.0"
+version = "0.0.0-semantically-released"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "monorepo"
+path = "src/main.rs"
 
 [dependencies]
 clap = "3.0.0-beta.5"
@@ -11,3 +13,6 @@ globwalk = "0.8.1"
 pathdiff = "0.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
+
+[dev-dependencies]
+semantic-release-rust = "1.0.0-alpha.8"

@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{crate_version, Parser};
 
 #[derive(Parser)]
-#[clap(version = "1.0", author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
+// RESUME: use the cargo version number
+#[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
 pub(crate) struct Opts {
     #[clap(subcommand)]
     pub subcommand: ClapSubCommand,
