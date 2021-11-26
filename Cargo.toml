@@ -10,7 +10,7 @@ path = "src/main.rs"
 [dependencies]
 clap = "3.0.0-beta.5"
 globwalk = "0.8.1"
-pathdiff = "0.1.0"
+pathdiff = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 

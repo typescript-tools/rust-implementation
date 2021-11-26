@@ -306,7 +306,7 @@ dependencies = [
  "itertools",
  "nested",
  "once_cell",
- "pathdiff 0.2.1",
+ "pathdiff",
  "petgraph",
  "semver",
  "serde",
@@ -528,12 +528,6 @@ dependencies = [
 
 [[package]]
 name = "pathdiff"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3bf70094d203e07844da868b634207e71bfab254fe713171fae9a6e751ccf31"
-
-[[package]]
-name = "pathdiff"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
@@ -628,7 +622,7 @@ version = "0.0.0-semantically-released"
 dependencies = [
  "clap 3.0.0-beta.5",
  "globwalk",
- "pathdiff 0.1.0",
+ "pathdiff",
  "semantic-release-rust",
  "serde",
  "serde_json",
