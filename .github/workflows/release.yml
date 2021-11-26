@@ -48,7 +48,8 @@ jobs:
           libxml2-dev \
           zlib1g-dev
 
-    - uses: actions/cache@v2
+    - name: Cache osxcross
+      uses: actions/cache@v2
       id: cache-osxcross
       with:
         path: |
@@ -82,7 +83,8 @@ jobs:
         toolchain: stable
         target: x86_64-apple-darwin
 
-    - uses: actions/cache@v2
+    - name: Cache cargo
+      uses: actions/cache@v2
       id: cache-cargo
       with:
         path: |
@@ -99,6 +101,14 @@ jobs:
       with:
         command: install
         args: semantic-release-rust --version 1.0.0-alpha.8
+
+    - name: Cache npm
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
 
     - name: Invoke semantic-release
       env:
