@@ -7,6 +7,9 @@
   "repository": {
     "url": "https://github.com/typescript-tools/rust-implementation"
   },
+  "bin": {
+    "monorepo": "./bin/monorepo"
+  },
   "scripts": {
     "postinstall": "node npm/install.js"
   },
