@@ -273,7 +273,7 @@ pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(),
         return Err("Found out-of-date project references")?;
     }
 
-    // STRETCH TODO: create `tsconfig.settings.json` files
+    // TODO(7): create `tsconfig.settings.json` files
 
     Ok(())
 }
