@@ -20,6 +20,7 @@ const getBinary = () => {
   const platform = binPathForCurrentPlatform()
   const url = `${repository.url}/releases/download/v${version}/typescript-tools-${platform}.tar.gz`
   const binaryName = 'monorepo'
+  console.log('Binary url', url)
   return new Binary(binaryName, url)
 }
 
