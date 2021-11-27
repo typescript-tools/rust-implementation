@@ -1,6 +1,7 @@
 {
   "name": "@typescript-tools/rust-implementation",
   "version": "0.0.0-semantically-released",
+  "license": "ISC",
   "publishConfig": {
     "access": "public"
   },
