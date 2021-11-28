@@ -19,6 +19,12 @@
     "rimraf": "^3.0.2",
     "tar": "^6.1.0"
   },
+  "dependencies": {
+    "axios": "0.24.0",
+    "rimraf": "3.0.2",
+    "tar": "6.1.11",
+    "tmp": "0.2.1"
+  },
   "devDependencies": {
     "@codedependant/semantic-release-docker": "3.1.2",
     "@semantic-release/exec": "6.0.2",
@@ -29,11 +35,5 @@
   },
   "files": [
     "npm/"
-  ],
-  "dependencies": {
-    "axios": "0.24.0",
-    "rimraf": "3.0.2",
-    "tar": "6.1.11",
-    "tmp": "0.2.1"
-  }
+  ]
 }
