@@ -24,11 +24,27 @@
     [
       "@codedependant/semantic-release-docker",
       {
+        "dockerFile": "Dockerfile",
         "dockerTags": [
           "latest",
           "{version}",
           "{major}-latest",
           "{major}.{minor}-latest"
+        ],
+        "dockerImage": "hamroctopus/typescript-tools",
+        "dockerProject": null,
+        "dockerLogin": false
+      }
+    ],
+    [
+      "@codedependant/semantic-release-docker",
+      {
+        "dockerFile": "Dockerfile.alpine",
+        "dockerTags": [
+          "latest-alpine",
+          "{version}-alpine",
+          "{major}-latest-alpine",
+          "{major}.{minor}-latest-alpine"
         ],
         "dockerImage": "hamroctopus/typescript-tools",
         "dockerProject": null,
