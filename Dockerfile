@@ -26,6 +26,3 @@ RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/monorepo* && \
 # alpine:3.15.0
 from alpine@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
 COPY --from=build-image /rust-implementation/target/x86_64-unknown-linux-musl/release/monorepo /usr/bin/monorepo
-WORKDIR /workdir
-ENTRYPOINT ["/usr/bin/monorepo"]
-CMD [""]
