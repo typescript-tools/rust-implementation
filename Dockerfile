@@ -1,4 +1,4 @@
-from rust:1.56.1@sha256:dd7167fc31b49284971b42f9b227bcac2fe3b8c2709259ec64dab7a05b5b07b0 as build-image
+from rust:1.56.1@sha256:993a7f2702713250b421e60df250ba57b1c72d557c93283f30d1a428d8087456 as build-image
 
 # create a dummy project
 RUN apt-get update && \
