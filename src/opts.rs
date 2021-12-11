@@ -20,34 +20,26 @@ pub enum ClapSubCommand {
 
 #[derive(Parser)]
 pub struct Link {
-    #[clap(short, long, about = "Path to monorepo root", default_value = ".")]
+    /// Path to monorepo root
+    #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
-    #[clap(
-        long = "ignore",
-        multiple_values(true),
-        about = "Patterns to ignore when resolving lerna package globs"
-    )]
+    /// Patterns to ignore when resolving lerna package globs
+    #[clap(long = "ignore", multiple_values(true))]
     pub ignore: Vec<String>,
-    #[clap(
-        long = "check",
-        about = "Exit with code 1 when project references are not properly configured"
-    )]
+    /// Exit with code 1 when project references are not properly configured
+    #[clap(long = "check")]
     pub check_only: bool,
 }
 
 #[derive(Parser)]
 pub struct Pin {
-    #[clap(short, long, about = "Path to monorepo root", default_value = ".")]
+    /// Path to monorepo root
+    #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
-    #[clap(
-        long = "ignore",
-        multiple_values(true),
-        about = "Patterns to ignore when resolving lerna package globs"
-    )]
+    /// Patterns to ignore when resolving lerna package globs
+    #[clap(long = "ignore", multiple_values(true))]
     pub ignore: Vec<String>,
-    #[clap(
-        long = "check",
-        about = "Exit with code 1 when internal dependencies are not properly pinned"
-    )]
+    /// Exit with code 1 when internal dependencies are not properly pinned
+    #[clap(long = "check")]
     pub check_only: bool,
 }
