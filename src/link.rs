@@ -6,25 +6,14 @@ use pathdiff::diff_paths;
 
 use serde_json::Value;
 
+use crate::dependencies::{
+    key_internal_package_manifest_path_by_package_name, relative_path_from_monorepo_root,
+};
 use crate::io::{
     get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
     read_tsconfig, write_project_references, write_tsconfig, PackageManifest,
     TypeScriptParentProjectReferences, TypeScriptProjectReference,
 };
-
-// Returns a path to an internal package relative to the monorepo root.
-fn internal_package_relative_path<P: AsRef<Path>>(
-    root: P,
-    internal_package_manifest: &Path,
-) -> Result<PathBuf, Box<dyn Error>> {
-    Ok(internal_package_manifest
-        .strip_prefix(root)?
-        .parent()
-        .ok_or::<Box<dyn Error>>(
-            String::from("Unexpected internal package in monorepo root").into(),
-        )?
-        .to_owned())
-}
 
 fn key_children_by_parent(
     mut accumulator: HashMap<PathBuf, Vec<String>>,
@@ -78,7 +67,7 @@ fn link_children_packages(
 
     internal_package_manifest_files
         .iter()
-        .map(|manifest_file| internal_package_relative_path(&opts.root, manifest_file))
+        .map(|manifest_file| relative_path_from_monorepo_root(&opts.root, manifest_file))
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         // Create the data structure representing child TypeScript project references
@@ -134,31 +123,13 @@ fn tsconfig_filename<P: AsRef<Path>>(manifest_file: P) -> Result<PathBuf, Box<dy
     Ok(tsconfig)
 }
 
-// Map scoped internal-package name to relative path from monorepo root.
-fn key_internal_package_directory_by_package_name<P: AsRef<Path>>(
-    root: P,
-    internal_package_manifests: &HashMap<PathBuf, PackageManifest>,
-) -> HashMap<String, PathBuf> {
-    internal_package_manifests.iter().fold(
-        HashMap::with_capacity(internal_package_manifests.len()),
-        |mut acc, (manifest_file, manifest)| {
-            acc.insert(
-                manifest.name.clone(),
-                internal_package_relative_path(&root, manifest_file)
-                    .expect("Unable to create relative path to package from monorepo root"),
-            );
-            acc
-        },
-    )
-}
-
 fn link_package_dependencies(
     opts: &crate::opts::Link,
     internal_package_manifest_files: &Vec<PathBuf>,
 ) -> Result<bool, Box<dyn Error>> {
     let internal_manifests = read_internal_package_manifests(internal_package_manifest_files)?;
     let package_directory_by_name =
-        key_internal_package_directory_by_package_name(&opts.root, &internal_manifests);
+        key_internal_package_manifest_path_by_package_name(&opts.root, &internal_manifests);
 
     let get_dependency_group = |package_manifest: &PackageManifest,
                                 dependency_group: &str|
