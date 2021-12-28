@@ -93,7 +93,7 @@ fn link_children_packages(
                         .get("references")
                         .map(|value| {
                             serde_json::from_value::<Vec<TypeScriptProjectReference>>(value.clone())
-                                .expect("Value starting as json should be serializable")
+                                .expect("Value starting as JSON should be serializable")
                         })
                         .unwrap_or_default()
                 })
@@ -214,7 +214,7 @@ fn link_package_dependencies(
             let needs_update = !vecs_match(
                 &desired_project_references,
                 &tsconfig.get("references")
-                .map(|value| serde_json::from_value::<Vec<TypeScriptProjectReference>>(value.clone()).expect("Value starting as json should be serializable"))
+                .map(|value| serde_json::from_value::<Vec<TypeScriptProjectReference>>(value.clone()).expect("Value starting as JSON should be serializable"))
                 .unwrap_or_default(),
             );
             if !needs_update {
