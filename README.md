@@ -26,7 +26,7 @@ speed.
 ## Goals
 
 The goals of the typescript-tools are to give back the maximum amount of human time
-possibly; chiefly through stability and aggressive automation.
+possible; chiefly through stability and aggressive automation.
 
 The Rust implementation aims to minimize the amount of latency added to your monorepo's
 workflow.
