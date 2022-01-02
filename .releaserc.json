@@ -27,9 +27,9 @@
         "dockerFile": "Dockerfile",
         "dockerTags": [
           "latest-alpine",
-          "{version}-alpine",
-          "{major}-latest-alpine",
-          "{major}.{minor}-latest-alpine"
+          "{{version}}-alpine",
+          "{{major}}-latest-alpine",
+          "{{major}}.{{minor}}-latest-alpine"
         ],
         "dockerImage": "hamroctopus/typescript-tools",
         "dockerProject": null,
