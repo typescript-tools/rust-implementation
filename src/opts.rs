@@ -15,6 +15,8 @@ pub enum ClapSubCommand {
     Pin(Pin),
     #[clap(about = "Configure TypeScript Project References")]
     Link(Link),
+    #[clap(about = "Create GNU Makefile containing package dependency information")]
+    MakeDepend(MakeDepend),
 }
 
 #[derive(Parser)]
@@ -41,4 +43,17 @@ pub struct Pin {
     /// Exit with code 1 when internal dependencies are not properly pinned
     #[clap(long = "check")]
     pub check_only: bool,
+}
+
+#[derive(Parser)]
+pub struct MakeDepend {
+    /// Path to monorepo root
+    #[clap(short, long, default_value = ".")]
+    pub root: PathBuf,
+    /// Directory to package for which to calculate dependencies
+    #[clap(long)]
+    pub package_directory: PathBuf,
+    /// Output file, relative to the package directory
+    #[clap(long)]
+    pub output_file: PathBuf,
 }

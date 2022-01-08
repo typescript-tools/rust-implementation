@@ -1,5 +1,6 @@
 mod io;
 mod link;
+mod make_depend;
 mod opts;
 mod pin;
 
@@ -13,5 +14,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     match opts.subcommand {
         opts::ClapSubCommand::Link(args) => link::link_typescript_project_references(args),
         opts::ClapSubCommand::Pin(args) => pin::pin_version_numbers_in_internal_packages(args),
+        opts::ClapSubCommand::MakeDepend(args) => make_depend::make_dependency_makefile(args),
     }
 }
