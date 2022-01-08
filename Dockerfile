@@ -16,6 +16,7 @@ RUN cargo build --release --target x86_64-unknown-linux-musl && \
     rm -r src/
 
 # copy over project source
+COPY ./templates ./templates
 COPY ./src ./src
 
 # build for release
