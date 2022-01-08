@@ -36,3 +36,6 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: check
+
+    - name: Build docker image
+      run: docker build -f Dockerfile .
