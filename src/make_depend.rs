@@ -138,7 +138,7 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
         scoped_package_name: &scoped_package_name,
         unscoped_package_name: &unscoped_package_name,
         inclusive_internal_dependency_package_jsons: &inclusive_internal_dependencies
-            .into_iter()
+            .iter()
             .map(|internal_dependency| {
                 internal_dependency
                     .join("package.json")

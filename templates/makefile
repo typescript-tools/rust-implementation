@@ -12,10 +12,6 @@ MAKEDEPEND = $(MONOREPO) make-depend \
 
 {{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS = {{ inclusive_internal_dependency_package_jsons.join(" \\\n") }}
 
-{{ package_directory }}/tsconfig.json: node_modules {{ package_directory }}/package.json
-	$(MONOREPO) link --root {{ root }}
-	@touch --no-create $@
-
 {{ package_directory }}/node_modules: node_modules $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS)
 	@$(MAKEDEPEND)
 	$(LERNA) bootstrap --force-local --scope={{ scoped_package_name }} --include-dependencies
