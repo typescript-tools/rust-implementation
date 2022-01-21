@@ -15,6 +15,6 @@ MAKEDEPEND = $(MONOREPO) make-depend \
 {{ package_directory }}/node_modules: node_modules $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS)
 	@$(MAKEDEPEND)
 	$(LERNA) bootstrap --force-local --scope={{ scoped_package_name }} --include-dependencies
-	@touch --no-create $@
+	@touch $@
 
 $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS):
