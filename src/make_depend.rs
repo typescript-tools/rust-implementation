@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,6 +11,7 @@ use serde_json::Value;
 
 use regex::Regex;
 
+use crate::dependencies::transitive_internal_dependencies;
 use crate::io::{
     get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
     PackageManifest,
@@ -26,6 +27,8 @@ struct MakefileTemplate<'a> {
     scoped_package_name: &'a str,
     unscoped_package_name: &'a str,
     inclusive_internal_dependency_package_jsons: &'a Vec<String>,
+    create_pack_target: &'a bool,
+    exclusive_transitive_internal_dependency_npm_pack_archives: &'a Vec<String>,
 }
 
 // Returns a path to an internal package relative to the monorepo root.
@@ -63,6 +66,18 @@ fn key_internal_package_directory_by_package_name<P: AsRef<Path>>(
             );
             acc
         },
+    )
+}
+
+// Maps @myscope/a-cool-package to myscope-a-cool-package.tgz.
+// Version numbers are omitted for now.
+fn get_npm_pack_filename<S: AsRef<str>>(package_name: S) -> String {
+    format!(
+        "{}.tgz",
+        package_name
+            .as_ref()
+            .trim_start_matches("@")
+            .replace("/", "-")
     )
 }
 
@@ -108,19 +123,68 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
             .unwrap_or(serde_json::Map::new())
     };
 
-    // we need a list of package.json files for internal dependencies, make that happen.
-    let inclusive_internal_dependencies = {
-        let mut deps = get_dependency_group(manifest, "dependencies")
+    let package_manifest_by_package_manifest_filename =
+        read_internal_package_manifests(&internal_package_manifest_files)
+            .expect("Unable to read package manifests");
+    let package_manifest_filename_by_package_name = package_manifest_by_package_manifest_filename
+        .iter()
+        .fold(HashMap::new(), |mut map, (manifest_filename, manifest)| {
+            map.insert(manifest.name.clone(), manifest_filename.to_owned());
+            map
+        });
+    let package_manifest_by_package_name = package_manifest_by_package_manifest_filename
+        .iter()
+        .fold(HashMap::new(), |mut map, (_manfiest_filename, manifest)| {
+            map.insert(manifest.name.clone(), manifest);
+            map
+        });
+    let internal_package_names: HashSet<String> = package_manifest_by_package_name
+        .keys()
+        .map(|key| key.to_owned())
+        .collect();
+
+    let exclusive_internal_dependency_package_names = transitive_internal_dependencies(
+        &package_manifest_filename_by_package_name,
+        &package_manifest_by_package_name,
+        &internal_package_names,
+        &crate::dependencies::DependencyFormat::PackageName,
+        &opts.root,
+        &scoped_package_name,
+    );
+
+    // a list of package.json files for internal dependencies
+    let inclusive_internal_dependency_package_directories = {
+        let exclusive_internal_dependency_package_names = {
+            let mut deps = get_dependency_group(manifest, "dependencies")
+                .iter()
+                .chain(get_dependency_group(manifest, "devDependencies").iter())
+                .chain(get_dependency_group(manifest, "optionalDependencies").iter())
+                .chain(get_dependency_group(manifest, "peerDependencies").iter())
+                .filter_map(|(name, _version)| {
+                    if package_directory_by_name.contains_key(name) {
+                        Some(name.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            deps.sort_unstable();
+            deps
+        };
+
+        let mut deps = exclusive_internal_dependency_package_names
             .iter()
-            .chain(get_dependency_group(manifest, "devDependencies").iter())
-            .chain(get_dependency_group(manifest, "optionalDependencies").iter())
-            .chain(get_dependency_group(manifest, "peerDependencies").iter())
-            .filter_map(|(name, _version)| package_directory_by_name.get(name).cloned())
+            .filter_map(|name| package_directory_by_name.get(name).cloned())
             .collect::<Vec<_>>();
         deps.push(package_directory_relative_path.clone());
         deps.sort_unstable();
         deps
     };
+
+    let internal_dependency_npm_pack_filenames = exclusive_internal_dependency_package_names
+        .iter()
+        .map(|internal_dependency_name| get_npm_pack_filename(internal_dependency_name))
+        .collect::<Vec<_>>();
 
     // create a string of the makefile contents
     let makefile_contents = MakefileTemplate {
@@ -137,16 +201,30 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
             .expect("Package directory not UTF-8 encodable"),
         scoped_package_name: &scoped_package_name,
         unscoped_package_name: &unscoped_package_name,
-        inclusive_internal_dependency_package_jsons: &inclusive_internal_dependencies
-            .iter()
-            .map(|internal_dependency| {
-                internal_dependency
-                    .join("package.json")
-                    .to_str()
-                    .expect("Expected internal package directory to be UTF-8 encodable")
-                    .to_owned()
-            })
-            .collect(),
+        inclusive_internal_dependency_package_jsons:
+            &inclusive_internal_dependency_package_directories
+                .iter()
+                .map(|internal_dependency| {
+                    internal_dependency
+                        .join("package.json")
+                        .to_str()
+                        .expect("Expected internal package directory to be UTF-8 encodable")
+                        .to_owned()
+                })
+                .collect(),
+        create_pack_target: &opts.create_pack_target,
+        exclusive_transitive_internal_dependency_npm_pack_archives:
+            &internal_dependency_npm_pack_filenames
+                .iter()
+                .map(|npm_pack_filename| {
+                    package_directory_relative_path
+                        .join(".internal-npm-dependencies")
+                        .join(npm_pack_filename)
+                        .to_str()
+                        .expect("Expected npm pack filename to be UTF-8 encodable")
+                        .to_owned()
+                })
+                .collect(),
     }
     .render()
     .expect("Unable to render makefile template");
