@@ -8,7 +8,8 @@ MONOREPO = ./node_modules/.bin/monorepo
 MAKEDEPEND = $(MONOREPO) make-depend \
 	--root {{ root }} \
 	--package-directory {{ package_directory }} \
-	--output-file {{ output_file }}
+	--output-file {{ output_file }}{% if create_pack_target %} \
+	--create-pack-target{% endif %}
 
 {{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS = {{ inclusive_internal_dependency_package_jsons.join(" \\\n") }}
 
@@ -18,3 +19,24 @@ MAKEDEPEND = $(MONOREPO) make-depend \
 	@touch $@
 
 $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS):
+
+{% if create_pack_target %}
+{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION = $(shell jq --raw-output .version {{ package_directory }}/package.json)
+
+# FIXME: specify prerequisites to this target so we can rebuild it locally when appropriate
+# NOTE: when npm 7+ supports a pack-destination so when npm 6 is EOL we should migrate to that
+dist/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}.tgz: | dist
+	cd {{ package_directory }}; npm pack
+	mv {{ package_directory }}/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}-$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION).tgz $@
+
+{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES = {{ exclusive_transitive_internal_dependency_npm_pack_archives.join(" \\\n") }}
+
+{{ package_directory }}/.internal-npm-dependencies:
+	mkdir $@
+
+{{ package_directory }}/.internal-npm-dependencies/%.tgz: dist/%.tgz | {{ package_directory }}/.internal-npm-dependencies
+	ln $< $@
+
+.PHONY: {{ unscoped_package_name }}-docker-dependencies
+{{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES)
+{% endif %}

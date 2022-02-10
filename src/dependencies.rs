@@ -45,13 +45,21 @@ pub fn key_internal_package_manifest_path_by_package_name<P: AsRef<Path>>(
     )
 }
 
-// Returns a list of relative paths to package_name's internal dependencies
+pub enum DependencyFormat {
+    // Scoped npm package name
+    PackageName,
+    // Relative path to package directory
+    PackageDirectory,
+}
+
+// Returns a list of scoped package names or relative paths to package_name's internal dependencies.
 pub fn transitive_internal_dependencies(
     package_manifest_filename_by_package_name: &HashMap<String, PathBuf>,
     package_manifest_by_package_name: &HashMap<String, &PackageManifest>,
     internal_package_names: &HashSet<String>,
+    format: &DependencyFormat,
+    root: &PathBuf,
     package_name: &str,
-    opts: &crate::opts::InternalDependencies,
 ) -> Vec<String> {
     // Consider refactoring this -- it was pulled directly out of link.rs, but now that
     // query.rs introduces related requirements we have room to consolidate
@@ -99,15 +107,16 @@ pub fn transitive_internal_dependencies(
             .get(&current)
             .expect("Failed to lookup manifest by package name");
         for dependency in get_internal_dependencies(current_manifest).iter() {
-            internal_dependencies.insert(match opts.format {
-                crate::opts::InternalDependenciesFormat::Name => {
+            // let internal_dependency
+            internal_dependencies.insert(match format {
+                DependencyFormat::PackageName => {
                     let manifest = package_manifest_by_package_name
                         .get(dependency)
                         .expect("Unable to look up package manifest by name");
                     manifest.name.to_owned()
                 }
-                crate::opts::InternalDependenciesFormat::Path => relative_path_from_monorepo_root(
-                    &opts.root,
+                DependencyFormat::PackageDirectory => relative_path_from_monorepo_root(
+                    root,
                     package_manifest_filename_by_package_name
                         .get(dependency)
                         .expect("Unable to look up package manifest path by package name"),

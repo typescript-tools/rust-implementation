@@ -65,8 +65,16 @@ fn query_internal_dependencies(
                         &package_manifest_filename_by_package_name,
                         &package_manifest_by_package_name,
                         &internal_package_names,
+                        match opts.format {
+                            opts::InternalDependenciesFormat::Name => {
+                                &crate::dependencies::DependencyFormat::PackageName
+                            }
+                            opts::InternalDependenciesFormat::Path => {
+                                &crate::dependencies::DependencyFormat::PackageDirectory
+                            }
+                        },
+                        &opts.root,
                         package_name,
-                        opts,
                     ),
                 );
                 map

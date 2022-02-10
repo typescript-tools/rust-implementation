@@ -58,6 +58,9 @@ pub struct MakeDepend {
     /// Output file, relative to the package directory
     #[clap(long)]
     pub output_file: PathBuf,
+    /// Include GNU make target for creating package archive with npm pack
+    #[clap(long)]
+    pub create_pack_target: bool,
 }
 
 #[derive(Parser)]
