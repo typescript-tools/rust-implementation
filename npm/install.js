@@ -26,6 +26,12 @@ const linkBinaryIntoBin = () => {
   // If this fails and throws an error, we'll end up leaving the temporary file there,
   // which is harmless.
   fs.renameSync(tempPath, desiredPath)
+
+  // By default, the downloaded file preserves the mtime of the binary created by GitHub
+  // Actions. For a seamless GNU Make experience on local machines, we want to update the
+  // mtime of this binary to the time of download.
+  const now = new Date()
+  fs.utimesSync(desiredPath, now, now)
 }
 
 // Downloaded binary to /bin/{ name }
