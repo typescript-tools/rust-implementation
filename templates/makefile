@@ -34,8 +34,9 @@ dist/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}.tgz: | 
 {{ package_directory }}/.internal-npm-dependencies:
 	mkdir $@
 
-{{ package_directory }}/.internal-npm-dependencies/%.tgz: dist/%.tgz | {{ package_directory }}/.internal-npm-dependencies
-	ln $< $@
+{{ package_directory }}/.internal-npm-dependencies/%.tgz: | dist/%.tgz {{ package_directory }}/.internal-npm-dependencies
+	rm -f $@
+	ln $(firstword $|) $@
 
 .PHONY: {{ unscoped_package_name }}-docker-dependencies
 {{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES)
