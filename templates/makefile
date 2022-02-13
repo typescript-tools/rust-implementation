@@ -39,5 +39,5 @@ dist/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}.tgz: | 
 	ln $(firstword $|) $@
 
 .PHONY: {{ unscoped_package_name }}-docker-dependencies
-{{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES)
+{{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES) | {{ package_directory }}/.internal-npm-dependencies
 {% endif %}
