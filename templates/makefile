@@ -27,7 +27,7 @@ $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDEN
 # NOTE: when npm 7+ supports a pack-destination so when npm 6 is EOL we should migrate to that
 dist/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}.tgz: | dist
 	cd {{ package_directory }}; npm pack
-	mv {{ package_directory }}/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}-$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION).tgz $@
+	ln {{ package_directory }}/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}-$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION).tgz $@
 
 {{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES = {{ exclusive_transitive_internal_dependency_npm_pack_archives.join(" \\\n") }}
 
