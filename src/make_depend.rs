@@ -35,7 +35,7 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
     let internal_dependencies_exclusive = package_manifest
         .transitive_internal_dependency_package_names(&package_manifest_by_package_name);
 
-    let internal_dependency_package_directories_inclusive: Vec<PathBuf> = {
+    let internal_dependency_package_json_filenames_inclusive: Vec<PathBuf> = {
         let mut dependency_dirs = internal_dependencies_exclusive
             .iter()
             .map(|internal_dependency| (*internal_dependency).path())
@@ -84,11 +84,10 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
             .to_str()
             .expect("npm pack filename is not UTF-8 encodable"),
         internal_dependency_package_json_filenames_inclusive:
-            &internal_dependency_package_directories_inclusive
+            &internal_dependency_package_json_filenames_inclusive
                 .iter()
                 .map(|internal_dependency| {
                     internal_dependency
-                        .join("package.json")
                         .to_str()
                         .expect("Internal package directory is not UTF-8 encodable")
                         .to_owned()
