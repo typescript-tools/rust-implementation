@@ -1,10 +1,13 @@
-mod dependencies;
+mod configuration_file;
 mod io;
+mod lerna_manifest;
 mod link;
 mod make_depend;
 mod opts;
+mod package_manifest;
 mod pin;
 mod query;
+mod typescript_config;
 
 use std::error::Error;
 
