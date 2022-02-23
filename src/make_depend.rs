@@ -65,11 +65,11 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
 
     // create a string of the makefile contents
     let makefile_contents = MakefileTemplate {
-        root: &opts
+        root: opts
             .root
             .to_str()
             .expect("Monorepo root is not UTF_8 encodable"),
-        output_file: &opts
+        output_file: opts
             .output_file
             .to_str()
             .expect("Output file is not UTF-8 encodable"),
@@ -78,8 +78,8 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
             .to_str()
             .expect("Package directory is not UTF-8 encodable"),
         scoped_package_name: &package_manifest.contents.name,
-        unscoped_package_name: &package_manifest.unscoped_package_name(),
-        pack_archive_filename: &package_manifest
+        unscoped_package_name: package_manifest.unscoped_package_name(),
+        pack_archive_filename: package_manifest
             .npm_pack_filename()
             .to_str()
             .expect("npm pack filename is not UTF-8 encodable"),
@@ -95,7 +95,7 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
                 })
                 .collect(),
         create_pack_target: &opts.create_pack_target,
-        npm_pack_archive_dependencies: &npm_pack_archive_dependencies,
+        npm_pack_archive_dependencies,
         internal_npm_dependencies_exclusive: &npm_pack_archive_dependencies
             .keys()
             .map(|string| string.as_str())

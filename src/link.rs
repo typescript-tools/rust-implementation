@@ -34,10 +34,10 @@ fn key_children_by_parent(
 }
 
 // Serialize the TypeScript project references.
-fn create_project_references(children: &Vec<String>) -> TypescriptParentProjectReference {
+fn create_project_references(children: &[String]) -> TypescriptParentProjectReference {
     // Sort the TypeScript project references for deterministic file contents.
     // This minimizes diffs since the tsconfig.json files are stored in version control.
-    let mut sorted_children = children.clone();
+    let mut sorted_children = children.to_owned();
     sorted_children.sort_unstable();
     TypescriptParentProjectReference {
         files: [].to_vec(),
@@ -50,7 +50,7 @@ fn create_project_references(children: &Vec<String>) -> TypescriptParentProjectR
     }
 }
 
-fn vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
+fn vecs_match<T: PartialEq>(a: &[T], b: &[T]) -> bool {
     let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
     matching == a.len() && matching == b.len()
 }
@@ -68,10 +68,10 @@ fn link_children_packages(
         .iter()
         .fold(HashMap::new(), key_children_by_parent)
         .iter()
-        .map(|(directory, children)| -> Result<(), Box<dyn Error>> {
+        .try_for_each(|(directory, children)| -> Result<(), Box<dyn Error>> {
             let desired_project_references = create_project_references(children);
             let tsconfig_filename = opts.root.join(directory).join("tsconfig.json");
-            let tsconfig = TypescriptConfig::from_directory(&opts.root, &directory)?;
+            let tsconfig = TypescriptConfig::from_directory(&opts.root, directory)?;
             let current_project_references = tsconfig
                 .contents
                 .get("references")
@@ -99,8 +99,7 @@ fn link_children_packages(
             } else {
                 write_project_references(tsconfig_filename, &desired_project_references)
             }
-        })
-        .collect::<Result<(), Box<dyn Error>>>()?;
+        })?;
 
     Ok(is_exit_success)
 }
@@ -162,9 +161,9 @@ fn link_package_dependencies(
             tsconfig
                 .contents
                 .as_object_mut()
-                .ok_or::<Box<dyn Error>>(
-                    String::from("Expected tsconfig.json to contain an Object").into(),
-                )?
+                .ok_or_else(|| -> Box<dyn Error> {
+                    String::from("Expected tsconfig.json to contain an Object").into()
+                })?
                 .insert(
                     String::from("references"),
                     serde_json::to_value(desired_project_references)?,
@@ -210,7 +209,7 @@ pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(),
         .expect("Unable to link internal package dependencies");
 
     if opts.check_only && !(is_children_link_success && is_dependencies_link_success) {
-        return Err("Found out-of-date project references")?;
+        return Err("Found out-of-date project references".into());
     }
 
     // TODO(7): create `tsconfig.settings.json` files

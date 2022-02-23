@@ -4,7 +4,6 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct TypescriptProjectReference {

@@ -15,7 +15,7 @@ struct UnpinnedDependency {
 pub fn pin_version_numbers_in_internal_packages(
     opts: crate::opts::Pin,
 ) -> Result<(), Box<dyn Error>> {
-    let mut lerna_manifest = LernaManifest::from_directory(&opts.root)?;
+    let lerna_manifest = LernaManifest::from_directory(&opts.root)?;
     let mut package_manifest_by_package_name = lerna_manifest
         .into_package_manifests_by_package_name()
         .expect("Unable to read all package manifests");
@@ -77,7 +77,7 @@ pub fn pin_version_numbers_in_internal_packages(
                 });
         }
 
-        if dependencies_to_update.len() > 0 {
+        if !dependencies_to_update.is_empty() {
             if opts.check_only {
                 exit_code = 1;
                 println!(
@@ -97,7 +97,7 @@ pub fn pin_version_numbers_in_internal_packages(
     }
 
     if opts.check_only && exit_code != 0 {
-        return Err("Found unexpected dependency versions for internal packages")?;
+        return Err("Found unexpected dependency versions for internal packages".into());
     }
     Ok(())
 }
