@@ -11,33 +11,36 @@ MAKEDEPEND = $(MONOREPO) make-depend \
 	--output-file {{ output_file }}{% if create_pack_target %} \
 	--create-pack-target{% endif %}
 
-{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS = {{ inclusive_internal_dependency_package_jsons.join(" \\\n") }}
+{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS_INCLUSIVE = {{ internal_dependency_package_json_filenames_inclusive.join(" \\\n") }}
 
-{{ package_directory }}/node_modules: $(MONOREPO) $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS)
+{{ package_directory }}/node_modules: $(MONOREPO) $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS_INCLUSIVE)
 	@$(MAKEDEPEND)
 	$(LERNA) bootstrap --force-local --scope={{ scoped_package_name }} --include-dependencies
 	@touch $@
 
-$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS):
+$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDENCY_MANIFESTS_INCLUSIVE):
 
 {% if create_pack_target %}
-{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION = $(shell jq --raw-output .version {{ package_directory }}/package.json)
-
-# FIXME: specify prerequisites to this target so we can rebuild it locally when appropriate
-# NOTE: when npm 7+ supports a pack-destination so when npm 6 is EOL we should migrate to that
-dist/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}.tgz: | dist
+# Ideally we specify prerequisites to this target so we can rebuild it when appropriate.
+# However, we don't have that list of prerequisites handly because we don't supply it for
+# the rule to compile our TypeScript code. Instead, we invoke the TypeScript compiler in
+# a .PHONY target and let the compiler's built-in logic determine whether or not to
+# re-compile its input sources. Since we don't have the list of sources available here,
+# let's invoke pack only when the file does not exist.
+{{ pack_archive_filename }}:
 	cd {{ package_directory }}; npm pack
-	mv {{ package_directory }}/{{ scoped_package_name.trim_start_matches("@").replace("/", "-") }}-$({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_VERSION).tgz $@
 
-{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES = {{ exclusive_transitive_internal_dependency_npm_pack_archives.join(" \\\n") }}
+{{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES_EXCLUSIVE = {{ internal_npm_dependencies_exclusive.join(" \\\n") }}
 
 {{ package_directory }}/.internal-npm-dependencies:
 	mkdir $@
 
-{{ package_directory }}/.internal-npm-dependencies/%.tgz: | dist/%.tgz {{ package_directory }}/.internal-npm-dependencies
+{% for (target, source) in npm_pack_archive_dependencies.iter() %}
+{{ target }}: {{ source }} | {{ package_directory }}/.internal-npm-dependencies
 	rm -f $@
-	ln $(firstword $|) $@
+	ln $< $@
+{% endfor %}
 
 .PHONY: {{ unscoped_package_name }}-docker-dependencies
-{{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES) | {{ package_directory }}/.internal-npm-dependencies
+{{ unscoped_package_name }}-docker-dependencies: $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES_EXCLUSIVE) | {{ package_directory }}/.internal-npm-dependencies
 {% endif %}

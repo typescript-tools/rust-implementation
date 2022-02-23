@@ -698,7 +698,6 @@ dependencies = [
  "clap 3.1.1",
  "globwalk",
  "pathdiff",
- "regex",
  "semantic-release-rust",
  "serde",
  "serde_json",

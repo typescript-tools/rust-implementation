@@ -26,9 +26,6 @@ pub struct Link {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
-    /// Patterns to ignore when resolving lerna package globs
-    #[clap(long = "ignore", multiple_values(true))]
-    pub ignore: Vec<String>,
     /// Exit with code 1 when project references are not properly configured
     #[clap(long = "check")]
     pub check_only: bool,
@@ -39,9 +36,6 @@ pub struct Pin {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
-    /// Patterns to ignore when resolving lerna package globs
-    #[clap(long = "ignore", multiple_values(true))]
-    pub ignore: Vec<String>,
     /// Exit with code 1 when internal dependencies are not properly pinned
     #[clap(long = "check")]
     pub check_only: bool,
@@ -83,9 +77,6 @@ pub struct InternalDependencies {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
-    /// Patterns to ignore when resolving lerna package globs
-    #[clap(long = "ignore", multiple_values(true))]
-    pub ignore: Vec<String>,
     /// Format in which to describe internal dependencies (defaults to name)
     #[clap(long = "format", arg_enum, default_value = "name")]
     pub format: InternalDependenciesFormat,

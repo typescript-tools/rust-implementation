@@ -1,14 +1,9 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::path::{Path, PathBuf};
 
-use serde_json;
-use serde_json::Value;
-
-use crate::io::{
-    get_internal_package_manifest_files, read_internal_package_manifests, read_lerna_manifest,
-    write_package_manifest, PackageManifest,
-};
+use crate::configuration_file::ConfigurationFile;
+use crate::lerna_manifest::LernaManifest;
+use crate::package_manifest::DependencyGroup;
 
 #[derive(Clone)]
 struct UnpinnedDependency {
@@ -17,93 +12,92 @@ struct UnpinnedDependency {
     expected: String,
 }
 
-fn get_version_by_name(
-    internal_packages: &HashMap<PathBuf, PackageManifest>,
-) -> HashMap<String, String> {
-    internal_packages
-        .values()
-        .fold(HashMap::new(), |mut acc, package_manifest| {
-            acc.insert(
-                package_manifest.name.to_string(),
-                package_manifest.version.to_string(),
-            );
-            acc
-        })
-}
-
-fn flatten<T>(nested: Vec<Vec<T>>) -> Vec<T> {
-    nested.into_iter().flatten().collect()
-}
-
 pub fn pin_version_numbers_in_internal_packages(
     opts: crate::opts::Pin,
 ) -> Result<(), Box<dyn Error>> {
-    let lerna_manifest = read_lerna_manifest(&opts.root).expect("Unable to read lerna manifest");
-    let internal_package_manifest_files =
-        get_internal_package_manifest_files(opts.root, &lerna_manifest, &opts.ignore)
-            .expect("Unable to enumerate internal package manifests");
-    let mut internal_packages = read_internal_package_manifests(&internal_package_manifest_files)
-        .expect("Unable to read package manifests");
-    let version_by_name = get_version_by_name(&internal_packages);
+    let lerna_manifest = LernaManifest::from_directory(&opts.root)?;
+    let mut package_manifest_by_package_name = lerna_manifest
+        .into_package_manifests_by_package_name()
+        .expect("Unable to read all package manifests");
+
+    let package_version_by_package_name: HashMap<String, String> = package_manifest_by_package_name
+        .values()
+        .map(|package| {
+            (
+                package.contents.name.to_owned(),
+                package.contents.version.to_owned(),
+            )
+        })
+        .collect();
 
     let mut exit_code = 0;
 
-    let pin =
-        |package_manifest: &mut PackageManifest, dependency_group| -> Vec<UnpinnedDependency> {
-            let mut modified = Vec::new();
-            if let Some(deps) = package_manifest
-                .extra_fields
-                .get_mut(dependency_group)
-                .and_then(|v| Value::as_object_mut(v))
-            {
-                for (package, version) in deps.iter_mut() {
-                    if let Some(internal_version) = version_by_name.get(package) {
-                        if !internal_version.eq(&*version) {
-                            modified.push(UnpinnedDependency {
-                                name: package.to_string(),
-                                actual: (*version).to_string(),
-                                expected: internal_version.to_string(),
-                            });
-                            *version = Value::String(internal_version.to_string());
-                        }
-                    }
-                }
-            }
+    for package_manifest in package_manifest_by_package_name.values_mut() {
+        let mut dependencies_to_update: Vec<UnpinnedDependency> = Vec::new();
+        for dependency_group in DependencyGroup::VALUES.iter() {
+            package_manifest
+                .get_dependency_group_mut(dependency_group)
+                .map(|dependencies| -> Vec<UnpinnedDependency> {
+                    dependencies
+                        .into_iter()
+                        .filter_map(
+                            |(dependency_name, dependency_version)| -> Option<UnpinnedDependency> {
+                                package_version_by_package_name
+                                    .get(dependency_name)
+                                    .and_then(|internal_dependency_declared_version| {
+                                        let used_dependency_version = dependency_version
+                                            .as_str()
+                                            .expect(
+                                                "Expected each dependency version to be a string",
+                                            )
+                                            .to_owned();
+                                        match used_dependency_version
+                                            .eq(internal_dependency_declared_version)
+                                        {
+                                            true => None,
+                                            false => {
+                                                *dependency_version = serde_json::Value::String(
+                                                    internal_dependency_declared_version.to_owned(),
+                                                );
+                                                Some(UnpinnedDependency {
+                                                    name: dependency_name.to_owned(),
+                                                    actual: used_dependency_version,
+                                                    expected: internal_dependency_declared_version
+                                                        .to_owned(),
+                                                })
+                                            }
+                                        }
+                                    })
+                            },
+                        )
+                        .collect()
+                })
+                .map(|mut unpinned_dependencies| {
+                    dependencies_to_update.append(&mut unpinned_dependencies)
+                });
+        }
 
-            modified
-        };
-
-    for (manifest_file, package_manifest) in internal_packages.iter_mut() {
-        let updated_packages = flatten(
-            [
-                pin(package_manifest, "dependencies"),
-                pin(package_manifest, "devDependencies"),
-                pin(package_manifest, "optionalDependencies"),
-                pin(package_manifest, "peerDependencies"),
-            ]
-            .to_vec(),
-        );
-        if updated_packages.len() > 0 {
+        if !dependencies_to_update.is_empty() {
             if opts.check_only {
                 exit_code = 1;
                 println!(
                     "File contains unexpected dependency versions: {:?}",
-                    manifest_file
+                    package_manifest.path()
                 );
-                for dependency in updated_packages {
+                for dependency in dependencies_to_update {
                     println!(
-                        "\tdependency: {:?}\texpected: {:?}\tgot: {}",
+                        "\tdependency: {:?}\texpected: {:?}\tgot: {:?}",
                         dependency.name, dependency.expected, dependency.actual
                     );
                 }
             } else {
-                write_package_manifest(Path::new(manifest_file), package_manifest)?;
+                package_manifest.write()?;
             }
         }
     }
 
     if opts.check_only && exit_code != 0 {
-        return Err("Found unexpected dependency versions for internal packages")?;
+        return Err("Found unexpected dependency versions for internal packages".into());
     }
     Ok(())
 }
