@@ -33,10 +33,13 @@ workflow.
 
 ## Supported Systems
 
-The following operating systems are supported
+The following operating systems/architectures are supported
 
 - [x] GNU/Linux
+  - [x] x86_64
 - [x] Mac OS
+  - [x] x86_64
+  - [ ] aarch64
 - [ ] Windows
 
 The following package managers are supported
