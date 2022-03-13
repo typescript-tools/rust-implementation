@@ -16,12 +16,6 @@
     ],
     "@semantic-release/release-notes-generator",
     [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "./ci/prepare-cmd ${nextRelease.version}"
-      }
-    ],
-    [
       "@codedependant/semantic-release-docker",
       {
         "dockerFile": "Dockerfile",
@@ -42,12 +36,24 @@
       {
         "assets": [
           {
-            "path": "dist/typescript-tools-x86_64-unknown-linux-gnu.tar.gz",
-            "label": "x86_64-unknown-linux-gnu"
+            "path": "dist/typescript-tools-x86_64-unknown-linux-musl.tar.gz",
+            "label": "x86_64-unknown-linux-musl"
+          },
+          {
+            "path": "dist/typescript-tools-i686-unknown-linux-musl.tar.gz",
+            "label": "i686-unknown-linux-musl"
           },
           {
             "path": "dist/typescript-tools-x86_64-apple-darwin.tar.gz",
             "label": "x86_64-apple-darwin"
+          },
+          {
+            "path": "dist/typescript-tools-aarch64-unknown-linux-musl.tar.gz",
+            "label": "aarch64-unknown-linux-musl"
+          },
+          {
+            "path": "dist/typescript-tools-aarch64-apple-darwin.tar.gz",
+            "label": "aarch64-apple-darwin"
           }
         ]
       }

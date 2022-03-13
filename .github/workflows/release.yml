@@ -1,4 +1,5 @@
 ---
+
 name: Release
 
 on:
@@ -18,70 +19,90 @@ on:
 # - npm publish
 # - create GitHub release
 
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    env:
-      BINARY_NAME: monorepo
-      CARGO_TERM_COLOR: always
-      RUST_BACKTRACE: 1
-    steps:
-    - name: Login to DockerHub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
+env:
+  BINARY_NAME: monorepo
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
+jobs:
+
+  semantic-version:
+    runs-on: ubuntu-latest
+    outputs:
+      next-version: ${{ steps.calculate.outputs.next-version }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        # Fetch all history and tags for calculating next semantic version
+        fetch-depth: 0
+
+    - name: Configure Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: lts/*
+        cache: npm
+
+    - name: Install npm dependencies
+      run: npm ci --ignore-scripts
+
+    - name: Calculate next semantic-release version
+      id: calculate
+      run: echo "::set-output name=next-version::$(npx standard-version --dry-run | grep "tagging release" | awk '{ print $NF }')"
+
+  # Room for improvement regarding caching/work-skipping. One example here
+  # https://github.com/ClementTsang/bottom/blob/92ec3599363c710815c286e975bbb6cc748708dd/.github/workflows/ci.yml#L195
+
+  ### Compile release artifacts
+  build-release:
+    runs-on: ${{ matrix.triple.os }}
+    container: ${{ matrix.triple.container }}
+    needs:
+      - semantic-version
+
+    strategy:
+      matrix:
+        triple:
+          - {
+              os: "ubuntu-latest",
+              target: "x86_64-unknown-linux-musl",
+              cross: false,
+            }
+          - {
+              os: "ubuntu-latest",
+              target: "i686-unknown-linux-musl",
+              cross: true,
+            }
+          - {
+              os: "macOS-latest",
+              target: "x86_64-apple-darwin",
+              cross: false,
+            }
+          # aarch64
+          - {
+              os: "ubuntu-latest",
+              target: "aarch64-unknown-linux-musl",
+              cross: true,
+            }
+          # macOS ARM
+          - {
+              os: "macOS-latest",
+              target: "aarch64-apple-darwin",
+              cross: true,
+            }
+
+    steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Install macOS cross-compilation dependencies
-      run: |
-        sudo apt update
-        sudo apt install --yes \
-          g++ \
-          gcc \
-          libgmp-dev \
-          libmpc-dev \
-          libmpfr-dev \
-          libssl-dev \
-          libxml2-dev \
-          zlib1g-dev
-
-    - name: Cache osxcross
-      uses: actions/cache@v3
-      id: cache-osxcross
-      with:
-        path: |
-          ~/osxcross
-        key: ${{ runner.os }}-osxcross-${{ hashFiles('$GITHUB_WORKSPACE/ci/resource-macos-sdk') }}
-
-    - name: Install osxcross
-      if: steps.cache-osxcross.outputs.cache-hit != 'true'
-      run: |
-        sdk=$(cat $GITHUB_WORKSPACE/ci/resource-macos-sdk)
-        git clone https://github.com/tpoechtrager/osxcross ~/osxcross
-        pushd ~/osxcross
-        curl -O $sdk
-        mv $(basename $sdk) tarballs/
-        UNATTENDED=yes OSX_VERSION_MIN=10.7 ./build.sh
-        popd
-
-    - name: Add macOS cross-compilation binaries to path
-      run: echo "$HOME/osxcross/target/bin" >> $GITHUB_PATH
-
-    - name: Install GNU/Linux toolchain
+    - name: Install toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
-        target: x86_64-unknown-linux-gnu
-
-    - name: Install macOS toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: x86_64-apple-darwin
+        override: true
+        target: ${{ matrix.triple.target }}
 
     - name: Cache cargo
       uses: actions/cache@v3
@@ -101,6 +122,52 @@ jobs:
       with:
         command: install
         args: semantic-release-rust --version 1.0.0-alpha.8
+
+    - name: Prepare semantic-release for Rust
+      run: semantic-release-rust prepare ${{ needs.semantic-version.outputs.next-version }}
+
+    - name: Cargo build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --all-targets --verbose --target=${{ matrix.triple.target }} --release
+        use-cross: ${{ matrix.triple.cross }}
+
+    - name: Create release archive
+      run: |
+        mkdir dist
+        mkdir -p builds/typescript-tools-${{ matrix.triple.target }}
+        cp target/${{ matrix.triple.target }}/release/monorepo builds/typescript-tools-${{ matrix.triple.target }}/
+        tar -C builds -czvf dist/typescript-tools-${{ matrix.triple.target }}.tar.gz typescript-tools-${{ matrix.triple.target }}
+
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: typescript-tools-${{ matrix.triple.target }}.tar.gz
+        path: dist/typescript-tools-${{ matrix.triple.target }}.tar.gz
+        if-no-files-found: error
+        retention-days: 1
+
+  ### Perform the semantic-release
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - build-release
+
+    steps:
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+
+    - name: Download release artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+
+    - name: Checkout
+      uses: actions/checkout@v3
 
     - name: Invoke semantic-release
       env:

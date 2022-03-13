@@ -33,16 +33,16 @@ workflow.
 
 ## Supported Systems
 
-The following operating systems/architectures are supported
+The following target triples are supported:
 
-- [x] GNU/Linux
-  - [x] x86_64
-- [x] Mac OS
-  - [x] x86_64
-  - [ ] aarch64
-- [ ] Windows
+- x86_64-unknown-linux-musl
+- i686-unknown-linux-musl
+- x86_64-apple-darwin
+- aarch64-unknown-linux-musl
+- aarch64-apple-darwin
 
 The following package managers are supported
 
 - [x] npm
 - [ ] yarn
+- [ ] pnpm
