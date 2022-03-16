@@ -28,7 +28,7 @@ $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDEN
 # re-compile its input sources. Since we don't have the list of sources available here,
 # let's invoke pack only when the file does not exist.
 {{ pack_archive_filename }}:
-	cd {{ package_directory }}; npm pack
+	cd {{ package_directory }}; npm pack --force
 
 {{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES_EXCLUSIVE = {{ internal_npm_dependencies_exclusive.join(" \\\n") }}
 
