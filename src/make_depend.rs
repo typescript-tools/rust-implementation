@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use askama::Template;
+use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::lerna_manifest::LernaManifest;
@@ -18,7 +19,6 @@ struct MakefileTemplate<'a> {
     package_directory: &'a str,
     scoped_package_name: &'a str,
     unscoped_package_name: &'a str,
-    pack_archive_filename: &'a str,
     internal_dependency_package_json_filenames_inclusive: &'a Vec<String>,
     create_pack_target: &'a bool,
     npm_pack_archive_dependencies: &'a HashMap<String, String>,
@@ -47,17 +47,19 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
     let npm_pack_archive_dependencies = &internal_dependencies_exclusive
         .iter()
         .map(|dependency| {
-            let target = package_manifest
+            let target_directory = package_manifest
                 .directory()
-                .join(".internal-npm-dependencies")
+                .join(".internal-npm-dependencies");
+            let target = target_directory
                 .join(dependency.npm_pack_file_basename())
                 .to_str()
                 .expect("npm pack filename is not UTF-8 encodable")
                 .to_owned();
-            let source = dependency
-                .npm_pack_filename()
+            let source_package_directory = dependency.directory();
+            let source = diff_paths(source_package_directory, target_directory)
+                .expect("no relative path to source package")
                 .to_str()
-                .expect("npm pack filename is not UTF-8 encodable")
+                .expect("source package path is not UTF-8 encodable")
                 .to_owned();
             (target, source)
         })
@@ -79,10 +81,6 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
             .expect("Package directory is not UTF-8 encodable"),
         scoped_package_name: &package_manifest.contents.name,
         unscoped_package_name: package_manifest.unscoped_package_name(),
-        pack_archive_filename: package_manifest
-            .npm_pack_filename()
-            .to_str()
-            .expect("npm pack filename is not UTF-8 encodable"),
         internal_dependency_package_json_filenames_inclusive:
             &internal_dependency_package_json_filenames_inclusive
                 .iter()

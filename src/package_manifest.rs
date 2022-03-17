@@ -181,10 +181,6 @@ impl PackageManifest {
         )
     }
 
-    pub fn npm_pack_filename(&self) -> PathBuf {
-        self.directory().join(&self.npm_pack_file_basename())
-    }
-
     pub fn unscoped_package_name(&self) -> &str {
         match &self.contents.name.rsplit_once("/") {
             Some((_scope, name)) => name,

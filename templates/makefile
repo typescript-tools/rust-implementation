@@ -27,8 +27,6 @@ $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDEN
 # a .PHONY target and let the compiler's built-in logic determine whether or not to
 # re-compile its input sources. Since we don't have the list of sources available here,
 # let's invoke pack only when the file does not exist.
-{{ pack_archive_filename }}:
-	cd {{ package_directory }}; npm pack --force
 
 {{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_NPM_DEPENDENCIES_EXCLUSIVE = {{ internal_npm_dependencies_exclusive.join(" \\\n") }}
 
@@ -36,9 +34,8 @@ $({{ unscoped_package_name.replace("-", "_").to_uppercase() }}_INTERNAL_DEPENDEN
 	mkdir $@
 
 {% for (target, source) in npm_pack_archive_dependencies.iter() %}
-{{ target }}: {{ source }} | {{ package_directory }}/.internal-npm-dependencies
-	rm -f $@
-	ln $< $@
+{{ target }}: | {{ package_directory }}/.internal-npm-dependencies
+	cd {{ package_directory }}/.internal-npm-dependencies; npm pack {{ source }}
 {% endfor %}
 
 .PHONY: {{ unscoped_package_name }}-docker-dependencies
