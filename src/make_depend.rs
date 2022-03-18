@@ -57,9 +57,9 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box
                 .to_owned();
             let source_package_directory = dependency.directory();
             let source = diff_paths(source_package_directory, target_directory)
-                .expect("no relative path to source package")
+                .expect("No relative path to source package")
                 .to_str()
-                .expect("source package path is not UTF-8 encodable")
+                .expect("Source package path is not UTF-8 encodable")
                 .to_owned();
             (target, source)
         })
