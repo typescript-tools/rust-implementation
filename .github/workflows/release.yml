@@ -49,7 +49,7 @@ jobs:
           zlib1g-dev
 
     - name: Cache osxcross
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: cache-osxcross
       with:
         path: |
@@ -84,7 +84,7 @@ jobs:
         target: x86_64-apple-darwin
 
     - name: Cache cargo
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: cache-cargo
       with:
         path: |
