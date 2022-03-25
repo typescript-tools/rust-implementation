@@ -15,6 +15,8 @@ const linkBinaryIntoBin = () => {
   const existingPath = path.resolve(downloadDir, binaryName)
   const desiredPath = path.resolve(nodeModulesBinDir, binaryName)
 
+  // Remove the symlinked, dummy, script, before symlinking the compiled binary in place
+  fs.unlinkSync(desiredPath)
   fs.symlinkSync(existingPath, desiredPath)
 
   // By default, the downloaded file preserves the mtime of the binary created by GitHub
