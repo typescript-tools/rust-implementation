@@ -42,7 +42,7 @@ class Binary {
     }
     this.url = url;
     this.name = name;
-    this.installDirectory = join(__dirname,  "../bin");
+    this.installDirectory = join(__dirname,  "../@typescript-tools/rust-implementation/bin");
 
     if (!existsSync(this.installDirectory)) {
       mkdirSync(this.installDirectory, { recursive: true });
