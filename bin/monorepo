@@ -1,3 +1,0 @@
-# This is a dummy binary that is the subject of the `npm install` workflow --
-# it gets linked into node_modules/.bin and marked as executable before the
-# npm postInstall hook executes
