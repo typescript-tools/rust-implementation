@@ -161,13 +161,13 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Download release artifacts
       uses: actions/download-artifact@v3
       with:
         path: dist
-
-    - name: Checkout
-      uses: actions/checkout@v3
 
     - name: Invoke semantic-release
       env:
