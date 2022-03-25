@@ -22,8 +22,7 @@
   "dependencies": {
     "axios": "0.26.1",
     "rimraf": "3.0.2",
-    "tar": "6.1.11",
-    "tmp": "0.2.1"
+    "tar": "6.1.11"
   },
   "devDependencies": {
     "@codedependant/semantic-release-docker": "4.0.0",
