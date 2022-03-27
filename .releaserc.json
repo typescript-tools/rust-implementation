@@ -36,24 +36,44 @@
       {
         "assets": [
           {
-            "path": "dist/typescript-tools-x86_64-unknown-linux-musl.tar.gz",
+            "path": "dist/x86_64-unknown-linux-musl/typescript-tools-x86_64-unknown-linux-musl.tar.gz",
             "label": "x86_64-unknown-linux-musl"
           },
           {
-            "path": "dist/typescript-tools-i686-unknown-linux-musl.tar.gz",
+            "path": "dist/x86_64-unknown-linux-musl/typescript-tools-x86_64-unknown-linux-musl-SHASUM256.txt",
+            "label": "x86_64-unknown-linux-musl-SHASUM256"
+          },
+          {
+            "path": "dist/i686-unknown-linux-musl/typescript-tools-i686-unknown-linux-musl.tar.gz",
             "label": "i686-unknown-linux-musl"
           },
           {
-            "path": "dist/typescript-tools-x86_64-apple-darwin.tar.gz",
+            "path": "dist/i686-unknown-linux-musl/typescript-tools-i686-unknown-linux-musl-SHASUM256.txt",
+            "label": "i686-unknown-linux-musl-SHASUM256"
+          },
+          {
+            "path": "dist/x86_64-apple-darwin/typescript-tools-x86_64-apple-darwin.tar.gz",
             "label": "x86_64-apple-darwin"
           },
           {
-            "path": "dist/typescript-tools-aarch64-unknown-linux-musl.tar.gz",
+            "path": "dist/x86_64-apple-darwin/typescript-tools-x86_64-apple-darwin-SHASUM256.txt",
+            "label": "x86_64-apple-darwin-SHASUM256"
+          },
+          {
+            "path": "dist/aarch64-unknown-linux-musl/typescript-tools-aarch64-unknown-linux-musl.tar.gz",
             "label": "aarch64-unknown-linux-musl"
           },
           {
-            "path": "dist/typescript-tools-aarch64-apple-darwin.tar.gz",
+            "path": "dist/aarch64-unknown-linux-musl/typescript-tools-aarch64-unknown-linux-musl-SHASUM256.txt",
+            "label": "aarch64-unknown-linux-musl-SHASUM256"
+          },
+          {
+            "path": "dist/aarch64-apple-darwin/typescript-tools-aarch64-apple-darwin.tar.gz",
             "label": "aarch64-apple-darwin"
+          },
+          {
+            "path": "dist/aarch64-apple-darwin/typescript-tools-aarch64-apple-darwin-SHASUM256.txt",
+            "label": "aarch64-apple-darwin-SHASUM256"
           }
         ]
       }

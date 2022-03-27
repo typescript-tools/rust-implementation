@@ -140,11 +140,17 @@ jobs:
         cp target/${{ matrix.triple.target }}/release/monorepo builds/typescript-tools-${{ matrix.triple.target }}/
         tar -C builds -czvf dist/typescript-tools-${{ matrix.triple.target }}.tar.gz typescript-tools-${{ matrix.triple.target }}
 
-    - name: Upload release artifact
+    - name: Create checksum
+      run: shasum --algorithm 256 --binary typescript-tools-${{ matrix.triple.target }}.tar.gz > typescript-tools-${{ matrix.triple.target }}-SHASUM256.txt
+      working-directory: ./dist
+
+    - name: Upload release artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: typescript-tools-${{ matrix.triple.target }}.tar.gz
-        path: dist/typescript-tools-${{ matrix.triple.target }}.tar.gz
+        name: ${{ matrix.triple.target }}
+        path: |
+          dist/typescript-tools-${{ matrix.triple.target }}.tar.gz
+          dist/typescript-tools-${{ matrix.triple.target }}-SHASUM256.txt
         if-no-files-found: error
         retention-days: 1
 
@@ -168,6 +174,10 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         path: dist
+
+    - name: Display downloaded release artifacts
+      run: ls -R
+      working-directory: dist
 
     - name: Invoke semantic-release
       env:
