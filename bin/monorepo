@@ -1,9 +1,3 @@
-#!/bin/sh
-
-cat <<EOF
-This is not the "monorepo" binary, which is usually downloaded via the npm "postinstall"
-hook. Was the "npm install" run with the "--ignore-scripts" flag?
-
-Please try reinstalling "@typescript-tools/rust-implementation" or opening a ticket with
-details about your use case.
-EOF
+# This is a dummy binary that is the subject of the `npm install` workflow --
+# it gets linked into node_modules/.bin and marked as executable before the
+# npm postInstall hook executes
