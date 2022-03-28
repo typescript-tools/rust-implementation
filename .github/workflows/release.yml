@@ -141,7 +141,7 @@ jobs:
         tar -C builds -czvf dist/typescript-tools-${{ matrix.triple.target }}.tar.gz typescript-tools-${{ matrix.triple.target }}
 
     - name: Create checksum
-      run: shasum --algorithm 256 --binary typescript-tools-${{ matrix.triple.target }}.tar.gz > typescript-tools-${{ matrix.triple.target }}-SHASUM256.txt
+      run: shasum --algorithm 256 typescript-tools-${{ matrix.triple.target }}.tar.gz > typescript-tools-${{ matrix.triple.target }}-SHASUMS256.txt
       working-directory: ./dist
 
     - name: Upload release artifacts
@@ -150,7 +150,7 @@ jobs:
         name: ${{ matrix.triple.target }}
         path: |
           dist/typescript-tools-${{ matrix.triple.target }}.tar.gz
-          dist/typescript-tools-${{ matrix.triple.target }}-SHASUM256.txt
+          dist/typescript-tools-${{ matrix.triple.target }}-SHASUMS256.txt
         if-no-files-found: error
         retention-days: 1
 
@@ -177,6 +177,10 @@ jobs:
 
     - name: Display downloaded release artifacts
       run: ls -R
+      working-directory: dist
+
+    - name: Combine checksums
+      run: cat **/typescript-tools-*-SHASUMS256.txt | tee SHASUMS256.txt
       working-directory: dist
 
     - name: Invoke semantic-release
