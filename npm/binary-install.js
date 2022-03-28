@@ -1,15 +1,11 @@
-const { existsSync, mkdirSync } = require("fs");
+const { createHash } = require("crypto");
+const { chmodSync, existsSync, mkdirSync, readFileSync } = require("fs");
 const { join } = require("path");
 const { spawnSync } = require("child_process");
 
 const axios = require("axios");
 const tar = require("tar");
 const rimraf = require("rimraf");
-
-const error = msg => {
-  console.error(msg);
-  process.exit(1);
-};
 
 class Binary {
   constructor(name, url) {
@@ -38,7 +34,8 @@ class Binary {
       });
       errorMsg +=
         '\n\nCorrect usage: new Binary("my-binary", "https://example.com/binary/download.tar.gz")';
-      error(errorMsg);
+      console.error(errorMsg);
+      process.exit(1);
     }
     this.url = url;
     this.name = name;
@@ -60,7 +57,9 @@ class Binary {
 
     // console.log(`Downloading release from ${this.url}`);
 
+    // Stream the file from the GitHub release page
     return axios({ ...fetchOptions, url: this.url, responseType: "stream" })
+      // untar the stream and write to disk
       .then(res => {
         return new Promise((resolve, reject) => {
           const sink = tar.x({ strip: 1, C: this.installDirectory });
@@ -69,17 +68,40 @@ class Binary {
           sink.on('error', err => reject(err));
         });
       })
+      // calculate a checksum of the untarred binary
+      .then(() => {
+        const fileBuffer = readFileSync(this.binaryPath);
+        const hashsum = createHash("sha256");
+        hashsum.update(fileBuffer);
+        const calculated_checksum = hashsum.digest('hex');
+
+        const advertised_checksums = readFileSync(join(__dirname, "SHASUMS256.txt"));
+
+        return new Promise((resolve, reject) => {
+          if (advertised_checksums.includes(calculated_checksum)) {
+            resolve();
+          } else {
+            chmodSync(this.binaryPath, 0o400);
+            console.error(`Calculated unexpected checksum ${calculated_checksum} for file ${this.binaryPath}`);
+            console.error('This file has been stripped of executable permissions but you should quarantine or delete it and open an issue.');
+            reject(new Error('Unexpected checksum'));
+          }
+        });
+      })
       .then(() => {
         // console.log(`${this.name} has been installed!`);
       })
-      .catch(e => {
-        error(`Error fetching release: ${e.message}`);
+      .catch(err => {
+        console.error(`Error fetching release:`);
+        console.error(err);
+        process.exit(1);
       });
   }
 
   run() {
     if (!existsSync(this.binaryPath)) {
-      error(`You must install ${this.name} before you can run it`);
+      console.error(`You must install ${this.name} before you can run it`);
+      process.exit(1);
     }
 
     const [, , ...args] = process.argv;
@@ -89,7 +111,8 @@ class Binary {
     const result = spawnSync(this.binaryPath, args, options);
 
     if (result.error) {
-      error(result.error);
+      console.error(result.error);
+      process.exit(1);
     }
 
     process.exit(result.status);

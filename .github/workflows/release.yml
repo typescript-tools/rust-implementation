@@ -140,9 +140,18 @@ jobs:
         cp target/${{ matrix.triple.target }}/release/monorepo builds/typescript-tools-${{ matrix.triple.target }}/
         tar -C builds -czvf dist/typescript-tools-${{ matrix.triple.target }}.tar.gz typescript-tools-${{ matrix.triple.target }}
 
-    - name: Create checksum
+    # Create a checksum of the tar archive for manual checksum verification of the archive before extraction.
+    - name: Create tar checksum
       run: shasum --algorithm 256 typescript-tools-${{ matrix.triple.target }}.tar.gz > typescript-tools-${{ matrix.triple.target }}-SHASUMS256.txt
       working-directory: ./dist
+
+    # Create a checksum of the binary for automatic checksum verification in the post-install hook. In this code
+    # path, the tar archive is streamed from the GitHub release page and the stream is untarred before a file
+    # is ever written to disk, to minimize disk usage. This makes it impossible to validate the checksum of the
+    # entire tar archive, so we calculate a checksum of the untarred binary instead.
+    - name: Create binary checksum
+      run: shasum --algorithm 256 --binary monorepo | tee ../../dist/typescript-tools-${{ matrix.triple.target }}-binary-SHASUMS256.txt
+      working-directory: ./builds/typescript-tools-${{ matrix.triple.target }}
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@v3
@@ -150,6 +159,7 @@ jobs:
         name: ${{ matrix.triple.target }}
         path: |
           dist/typescript-tools-${{ matrix.triple.target }}.tar.gz
+          dist/typescript-tools-${{ matrix.triple.target }}-binary-SHASUMS256.txt
           dist/typescript-tools-${{ matrix.triple.target }}-SHASUMS256.txt
         if-no-files-found: error
         retention-days: 1
@@ -180,8 +190,7 @@ jobs:
       working-directory: dist
 
     - name: Combine checksums
-      run: cat **/typescript-tools-*-SHASUMS256.txt | tee SHASUMS256.txt
-      working-directory: dist
+      run: cat dist/**/typescript-tools-*-SHASUMS256.txt | tee npm/SHASUMS256.txt
 
     - name: Invoke semantic-release
       env:
