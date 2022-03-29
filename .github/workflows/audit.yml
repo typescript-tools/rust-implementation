@@ -1,0 +1,41 @@
+---
+
+name: Dependency Audit
+
+on:
+  pull_request:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+
+jobs:
+  dependency_audit:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-unknown-linux-gnu
+
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    # Invoke cargo audit directly (and not with the GitHub action) because
+    # we don't want to create a GitHub issue for vulnerabilities detected
+    # in pull requests since a human will observe these errors
+    - name: Audit
+      run: cargo audit --ignore RUSTSEC-2020-0159 --ignore RUSTSEC-2020-0071
