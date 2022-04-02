@@ -14,11 +14,6 @@
   "scripts": {
     "postinstall": "node npm/install.js"
   },
-  "dependenciesS": {
-    "axios": "^0.21.1",
-    "rimraf": "^3.0.2",
-    "tar": "^6.1.0"
-  },
   "dependencies": {
     "axios": "0.26.1",
     "rimraf": "3.0.2",
