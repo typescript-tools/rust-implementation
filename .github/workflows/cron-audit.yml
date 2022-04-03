@@ -1,13 +1,13 @@
 ---
 
-name: Dependency audit
+name: Scheduled Dependency Audit
 
 on:
   schedule:
     - cron: '0 0 * * *'
 
 jobs:
-  dependency_audit:
+  scheduled_dependency_audit:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
