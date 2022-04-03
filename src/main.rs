@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod configuration_file;
 mod io;
 mod lerna_manifest;
