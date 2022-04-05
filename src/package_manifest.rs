@@ -129,8 +129,7 @@ impl PackageManifest {
 
         to_visit_package_manifests.push_back(self);
 
-        while !to_visit_package_manifests.is_empty() {
-            let current_manifest = to_visit_package_manifests.pop_front().unwrap();
+        while let Some(current_manifest) = to_visit_package_manifests.pop_front() {
             seen_package_names.insert(&current_manifest.contents.name);
 
             for dependency in current_manifest
