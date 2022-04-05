@@ -88,35 +88,34 @@ impl AsRef<PackageManifest> for PackageManifest {
 }
 
 impl PackageManifest {
-    pub fn get_internal_dependencies<'a, T>(
+    pub fn internal_dependencies_iter<'a, T>(
         &'a self,
-        package_manifests_by_package_name: &HashMap<String, &'a T>,
-    ) -> Vec<&'a PackageManifest>
+        package_manifests_by_package_name: &'a HashMap<String, &'a T>,
+    ) -> impl Iterator<Item = &'a PackageManifest>
     where
         T: AsRef<PackageManifest>,
     {
-        let get_dependency_group = |dependency_group: &str| -> Vec<&'a String> {
-            self.contents
-                .extra_fields
-                .get(dependency_group)
-                .and_then(serde_json::Value::as_object)
-                .map(|object| object.keys().collect())
-                .unwrap_or_default()
-        };
+        static DEPENDENCY_GROUPS: &[&str] = &[
+            "dependencies",
+            "devDependencies",
+            "optionalDependencies",
+            "peerDependencies",
+        ];
 
-        get_dependency_group("dependencies")
+        DEPENDENCY_GROUPS
             .iter()
-            .chain(get_dependency_group("devDependencies").iter())
-            .chain(get_dependency_group("optionalDependencies").iter())
-            .chain(get_dependency_group("peerDependencies").iter())
+            // only iterate over the objects corresponding to each dependency group
+            .filter_map(|dependency_group| {
+                self.contents.extra_fields.get(dependency_group)?.as_object()
+            })
+            // get all dependency names from all groups
+            .flat_map(|dependency_group_value| dependency_group_value.keys())
             // filter out external packages
             .filter_map(|package_name| {
                 package_manifests_by_package_name
-                    .get(*package_name)
-                    .cloned()
-                    .map(|thing| thing.as_ref())
+                    .get(package_name)
+                    .map(|&thing| thing.as_ref())
             })
-            .collect()
     }
 
     pub fn transitive_internal_dependency_package_names<'a>(
@@ -135,8 +134,7 @@ impl PackageManifest {
             seen_package_names.insert(&current_manifest.contents.name);
 
             for dependency in current_manifest
-                .get_internal_dependencies(package_manifest_by_package_name)
-                .iter()
+                .internal_dependencies_iter(package_manifest_by_package_name)
             {
                 internal_dependencies.insert(dependency.contents.name.to_owned());
                 if !seen_package_names.contains(&dependency.contents.name.as_ref()) {
