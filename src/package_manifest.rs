@@ -156,10 +156,10 @@ impl PackageManifest {
             .collect()
     }
 
-    pub fn get_dependency_group_mut<'a>(
-        &'a mut self,
+    pub fn get_dependency_group_mut(
+        &mut self,
         group: &DependencyGroup,
-    ) -> Option<&'a mut serde_json::Map<String, serde_json::Value>> {
+    ) -> Option<&mut serde_json::Map<String, serde_json::Value>> {
         let group_index = match group {
             DependencyGroup::Dependencies => "dependencies",
             DependencyGroup::DevDependencies => "devDependencies",
