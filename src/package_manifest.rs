@@ -123,9 +123,9 @@ impl PackageManifest {
         package_manifest_by_package_name: &HashMap<String, &'a PackageManifest>,
     ) -> Vec<&'a PackageManifest> {
         // Depth-first search all transitive internal dependencies of package
-        let mut seen_package_names: HashSet<&str> = HashSet::new();
-        let mut internal_dependencies: HashSet<String> = HashSet::new();
-        let mut to_visit_package_manifests: VecDeque<&PackageManifest> = VecDeque::new();
+        let mut seen_package_names = HashSet::new();
+        let mut internal_dependencies = HashSet::new();
+        let mut to_visit_package_manifests = VecDeque::new();
 
         to_visit_package_manifests.push_back(self);
 
@@ -137,7 +137,7 @@ impl PackageManifest {
                 .internal_dependencies_iter(package_manifest_by_package_name)
             {
                 internal_dependencies.insert(dependency.contents.name.to_owned());
-                if !seen_package_names.contains(&dependency.contents.name.as_ref()) {
+                if !seen_package_names.contains(&dependency.contents.name) {
                     to_visit_package_manifests.push_back(dependency);
                 }
             }
