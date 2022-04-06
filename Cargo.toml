@@ -21,3 +21,4 @@ semantic-release-rust = "1.0.0-alpha.8"
 [profile.release]
 lto = true
 codegen-units = 1
+strip = true
