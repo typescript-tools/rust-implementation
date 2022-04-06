@@ -42,9 +42,9 @@ fn create_project_references(children: &[String]) -> TypescriptParentProjectRefe
     TypescriptParentProjectReference {
         files: Vec::new(),
         references: sorted_children
-            .iter()
-            .map(|child| TypescriptProjectReference {
-                path: child.to_string(),
+            .into_iter()
+            .map(|path| TypescriptProjectReference {
+                path,
             })
             .collect(),
     }
