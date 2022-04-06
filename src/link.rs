@@ -40,7 +40,7 @@ fn create_project_references(children: &[String]) -> TypescriptParentProjectRefe
     let mut sorted_children = children.to_owned();
     sorted_children.sort_unstable();
     TypescriptParentProjectReference {
-        files: [].to_vec(),
+        files: Vec::new(),
         references: sorted_children
             .iter()
             .map(|child| TypescriptProjectReference {
