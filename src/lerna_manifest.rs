@@ -13,7 +13,6 @@ use crate::package_manifest::PackageManifest;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LernaManifestFile {
-    version: String,
     packages: Vec<String>,
 }
 
