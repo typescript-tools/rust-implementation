@@ -7,7 +7,7 @@ use askama::Template;
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::lerna_manifest::LernaManifest;
+use crate::lerna_manifest::MonorepoManifest;
 use crate::package_manifest::PackageManifest;
 
 #[derive(Template)]
@@ -26,7 +26,7 @@ struct MakefileTemplate<'a> {
 }
 
 pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Box<dyn Error>> {
-    let lerna_manifest = LernaManifest::from_directory(&opts.root)?;
+    let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
     let package_manifest = PackageManifest::from_directory(&opts.root, &opts.package_directory)?;
 
     // determine the complete set of internal dependencies (and self!)

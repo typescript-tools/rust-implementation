@@ -8,7 +8,7 @@ use crate::configuration_file::ConfigurationFile;
 use crate::io::{
     write_project_references, TypescriptParentProjectReference, TypescriptProjectReference,
 };
-use crate::lerna_manifest::LernaManifest;
+use crate::lerna_manifest::MonorepoManifest;
 use crate::package_manifest::PackageManifest;
 use crate::typescript_config::TypescriptConfig;
 
@@ -59,7 +59,7 @@ fn vecs_match<T: PartialEq>(a: &[T], b: &[T]) -> bool {
 // This permits us to build the monorepo from the top down.
 fn link_children_packages(
     opts: &crate::opts::Link,
-    lerna_manifest: &LernaManifest,
+    lerna_manifest: &MonorepoManifest,
 ) -> Result<bool, Box<dyn Error>> {
     let mut is_exit_success = true;
 
@@ -106,7 +106,7 @@ fn link_children_packages(
 
 fn link_package_dependencies(
     opts: &crate::opts::Link,
-    lerna_manifest: &LernaManifest,
+    lerna_manifest: &MonorepoManifest,
 ) -> Result<bool, Box<dyn Error>> {
     let package_manifest_by_package_name = lerna_manifest
         .package_manifests_by_package_name()
@@ -199,7 +199,7 @@ fn link_package_dependencies(
 
 pub fn link_typescript_project_references(opts: crate::opts::Link) -> Result<(), Box<dyn Error>> {
     let lerna_manifest =
-        LernaManifest::from_directory(&opts.root).expect("Unable to read lerna manifest");
+        MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
     let is_children_link_success =
         link_children_packages(&opts, &lerna_manifest).expect("Unable to link children packages");
