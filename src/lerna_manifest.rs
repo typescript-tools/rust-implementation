@@ -90,11 +90,11 @@ impl LernaManifest {
     }
 
     pub fn into_package_manifests_by_package_name(
-        mut self,
+        self,
     ) -> Result<HashMap<String, PackageManifest>, Box<dyn Error>> {
         self.internal_package_manifests
-            .drain(0..)
-            .map(|manifest| Ok((manifest.contents.name.to_owned(), manifest)))
+            .into_iter()
+            .map(|manifest| Ok((manifest.contents.name.clone(), manifest)))
             .collect()
     }
 }

@@ -40,11 +40,11 @@ fn create_project_references(children: &[String]) -> TypescriptParentProjectRefe
     let mut sorted_children = children.to_owned();
     sorted_children.sort_unstable();
     TypescriptParentProjectReference {
-        files: [].to_vec(),
+        files: Vec::new(),
         references: sorted_children
-            .iter()
-            .map(|child| TypescriptProjectReference {
-                path: child.to_string(),
+            .into_iter()
+            .map(|path| TypescriptProjectReference {
+                path,
             })
             .collect(),
     }
@@ -118,11 +118,10 @@ fn link_package_dependencies(
             let package_directory = package_manifest.directory();
             let mut tsconfig = TypescriptConfig::from_directory(&opts.root, &package_directory)?;
             let internal_dependencies =
-                package_manifest.get_internal_dependencies(&package_manifest_by_package_name);
+                package_manifest.internal_dependencies_iter(&package_manifest_by_package_name);
 
             let desired_project_references: Vec<TypescriptProjectReference> = {
                 let mut typescript_project_references: Vec<String> = internal_dependencies
-                    .iter()
                     .map(|dependency| {
                         diff_paths(dependency.directory(), package_manifest.directory())
                             .expect(
