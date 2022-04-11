@@ -8,7 +8,7 @@ use crate::configuration_file::ConfigurationFile;
 use crate::io::{
     write_project_references, TypescriptParentProjectReference, TypescriptProjectReference,
 };
-use crate::lerna_manifest::MonorepoManifest;
+use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::PackageManifest;
 use crate::typescript_config::TypescriptConfig;
 

@@ -7,7 +7,7 @@ use askama::Template;
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::lerna_manifest::MonorepoManifest;
+use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::PackageManifest;
 
 #[derive(Template)]

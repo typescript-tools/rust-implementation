@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::lerna_manifest::MonorepoManifest;
+use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::DependencyGroup;
 
 #[derive(Clone)]

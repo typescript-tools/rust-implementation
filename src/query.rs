@@ -4,7 +4,7 @@ use std::error::Error;
 use crate::opts;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::lerna_manifest::MonorepoManifest;
+use crate::monorepo_manifest::MonorepoManifest;
 
 pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), Box<dyn Error>> {
     match opts.subcommand {
