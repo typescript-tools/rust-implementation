@@ -2,9 +2,9 @@
 
 mod configuration_file;
 mod io;
-mod lerna_manifest;
 mod link;
 mod make_depend;
+mod monorepo_manifest;
 mod opts;
 mod package_manifest;
 mod pin;

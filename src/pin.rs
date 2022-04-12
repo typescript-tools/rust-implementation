@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::lerna_manifest::LernaManifest;
+use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::DependencyGroup;
 
 #[derive(Clone)]
@@ -15,7 +15,7 @@ struct UnpinnedDependency {
 pub fn pin_version_numbers_in_internal_packages(
     opts: crate::opts::Pin,
 ) -> Result<(), Box<dyn Error>> {
-    let lerna_manifest = LernaManifest::from_directory(&opts.root)?;
+    let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
     let mut package_manifest_by_package_name = lerna_manifest
         .into_package_manifests_by_package_name()
         .expect("Unable to read all package manifests");
