@@ -72,7 +72,7 @@ impl MonorepoManifest {
     const LERNA_MANIFEST_FILENAME: &'static str = "lerna.json";
     const PACKAGE_MANIFEST_FILENAME: &'static str = "package.json";
 
-    fn from_lerna_manifest<P>(root: P) -> Result<MonorepoManifest, Box<dyn Error>>
+    pub fn from_lerna_manifest<P>(root: P) -> Result<MonorepoManifest, Box<dyn Error>>
     where
         P: AsRef<Path>,
     {
