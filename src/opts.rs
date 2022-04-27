@@ -19,6 +19,8 @@ pub enum ClapSubCommand {
     MakeDepend(MakeDepend),
     #[clap(about = "Query properties of the current monorepo state")]
     Query(Query),
+    #[clap(about = "Lint the lerna manifest for unregistered new packages")]
+    LintLernaManifest(LintLernaManifest),
 }
 
 #[derive(Parser)]
@@ -62,6 +64,13 @@ pub struct Query {
     /// internal-dependencies
     #[clap(subcommand)]
     pub subcommand: ClapQuerySubCommand,
+}
+
+#[derive(Parser)]
+pub struct LintLernaManifest {
+    /// Path to monorepo root
+    #[clap(short, long, default_value = ".")]
+    pub root: PathBuf,
 }
 
 #[derive(Parser)]
