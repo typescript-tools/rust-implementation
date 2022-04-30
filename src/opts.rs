@@ -19,6 +19,8 @@ pub enum ClapSubCommand {
     MakeDepend(MakeDepend),
     #[clap(about = "Query properties of the current monorepo state")]
     Query(Query),
+    #[clap(about = "Lint internal packages for consistent use of external dependency versions")]
+    Lint(Lint),
 }
 
 #[derive(Parser)]
@@ -59,7 +61,6 @@ pub struct MakeDepend {
 
 #[derive(Parser)]
 pub struct Query {
-    /// internal-dependencies
     #[clap(subcommand)]
     pub subcommand: ClapQuerySubCommand,
 }
@@ -72,6 +73,12 @@ pub enum ClapQuerySubCommand {
     InternalDependencies(InternalDependencies),
 }
 
+#[derive(ArgEnum, Clone)]
+pub enum InternalDependenciesFormat {
+    Name,
+    Path,
+}
+
 #[derive(Parser)]
 pub struct InternalDependencies {
     /// Path to monorepo root
@@ -82,8 +89,24 @@ pub struct InternalDependencies {
     pub format: InternalDependenciesFormat,
 }
 
-#[derive(ArgEnum, Clone)]
-pub enum InternalDependenciesFormat {
-    Name,
-    Path,
+#[derive(Parser)]
+pub struct Lint {
+    #[clap(subcommand)]
+    pub subcommand: ClapLintSubCommand,
+}
+
+#[derive(Parser)]
+pub enum ClapLintSubCommand {
+    #[clap(about = "Lint the used versions of an external dependency for consistency")]
+    DependencyVersion(DependencyVersion),
+}
+
+#[derive(Parser)]
+pub struct DependencyVersion {
+    /// Path to monorepo root
+    #[clap(short, long, default_value = ".")]
+    pub root: PathBuf,
+    /// External dependency to lint for consistency of version used
+    #[clap(short, long = "dependency")]
+    pub dependencies: Vec<String>,
 }
