@@ -1,12 +1,13 @@
 use std::collections::HashMap;
-use std::error::Error;
+
+use anyhow::{anyhow, Result};
 
 use crate::opts;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::monorepo_manifest::MonorepoManifest;
 
-pub fn handle_subcommand(opts: opts::Lint) -> Result<(), Box<dyn Error>> {
+pub fn handle_subcommand(opts: opts::Lint) -> Result<()> {
     match opts.subcommand {
         opts::ClapLintSubCommand::DependencyVersion(args) => lint_dependency_version(&args),
     }
@@ -26,7 +27,7 @@ fn most_common_dependency_version(
         .map(|(k, _v)| k.to_owned())
 }
 
-fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), Box<dyn Error>> {
+fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<()> {
     let opts::DependencyVersion { root, dependencies } = opts;
 
     let lerna_manifest = MonorepoManifest::from_directory(&root)?;
@@ -90,6 +91,6 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), Box<dyn
     if is_exit_success {
         return Ok(());
     } else {
-        return Err("Found unexpected dependency versions".into());
+        return Err(anyhow!("Found unexpected dependency versions"));
     }
 }

@@ -4,7 +4,7 @@ use clap::{crate_version, ArgEnum, Parser};
 
 #[derive(Parser)]
 #[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
-pub(crate) struct Opts {
+pub struct Opts {
     #[clap(subcommand)]
     pub subcommand: ClapSubCommand,
 }

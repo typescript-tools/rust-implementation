@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+
+use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,7 +45,7 @@ impl DependencyGroup {
 impl ConfigurationFile<PackageManifest> for PackageManifest {
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<PackageManifest, Box<dyn Error>>
+    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<PackageManifest>
     where
         P: AsRef<Path>,
     {
@@ -67,7 +68,7 @@ impl ConfigurationFile<PackageManifest> for PackageManifest {
         self.directory.join(Self::FILENAME)
     }
 
-    fn write(&self) -> Result<(), Box<dyn Error>> {
+    fn write(&self) -> Result<()> {
         let file = File::create(
             self.monorepo_root
                 .join(&self.directory)

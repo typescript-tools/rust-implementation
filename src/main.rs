@@ -1,22 +1,17 @@
 #![forbid(unsafe_code)]
 
-mod configuration_file;
-mod io;
-mod link;
-mod lint;
-mod make_depend;
-mod monorepo_manifest;
-mod opts;
-mod package_manifest;
-mod pin;
-mod query;
-mod typescript_config;
-
-use std::error::Error;
+use anyhow::Result;
 
 use clap::Parser;
 
-fn main() -> Result<(), Box<dyn Error>> {
+use typescript_tools::link;
+use typescript_tools::lint;
+use typescript_tools::make_depend;
+use typescript_tools::opts;
+use typescript_tools::pin;
+use typescript_tools::query;
+
+fn main() -> Result<()> {
     let opts = opts::Opts::parse();
 
     match opts.subcommand {

@@ -699,19 +699,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
-name = "rust_typescript_tools"
-version = "0.0.0-semantically-released"
-dependencies = [
- "askama",
- "clap 3.1.8",
- "globwalk",
- "pathdiff",
- "semantic-release-rust",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -967,6 +954,20 @@ dependencies = [
  "chrono",
  "combine",
  "linked-hash-map",
+]
+
+[[package]]
+name = "typescript_tools"
+version = "0.0.0-semantically-released"
+dependencies = [
+ "anyhow",
+ "askama",
+ "clap 3.1.8",
+ "globwalk",
+ "pathdiff",
+ "semantic-release-rust",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
