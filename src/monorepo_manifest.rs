@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::marker::Sync;
 use std::path::Path;
 
 use anyhow::Result;
@@ -8,6 +9,8 @@ use anyhow::Result;
 use globwalk::{FileType, GlobWalkerBuilder};
 
 use serde::{Deserialize, Serialize};
+
+use dpc_pariter::IteratorExt as _;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::package_manifest::PackageManifest;
@@ -32,7 +35,7 @@ fn get_internal_package_manifests<'a, P, I>(
     package_globs: I,
 ) -> Result<Vec<PackageManifest>>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Sync,
     I: Iterator<Item = &'a String>,
 {
     let mut package_manifests: Vec<String> = package_globs
@@ -48,6 +51,8 @@ where
     // ignore paths to speed up file-system walk
     package_manifests.push(String::from("!node_modules/"));
 
+    let monorepo_root = directory.as_ref().to_owned();
+
     GlobWalkerBuilder::from_patterns(&directory, &package_manifests)
         .file_type(FileType::FILE)
         .min_depth(1)
@@ -55,15 +60,16 @@ where
         .expect("Unable to create glob")
         .into_iter()
         .filter_map(Result::ok)
-        .map(|dir_entry| {
+        .parallel_map(move |dir_entry| {
             PackageManifest::from_directory(
-                directory.as_ref(),
+                monorepo_root.clone(),
                 dir_entry
                     .path()
                     .parent()
                     .expect("Unexpected package in monorepo root")
-                    .strip_prefix(directory.as_ref())
-                    .expect("Unexpected package in monorepo root"),
+                    .strip_prefix(monorepo_root.clone())
+                    .expect("Unexpected package in monorepo root")
+                    .to_owned(),
             )
         })
         .collect()
@@ -75,7 +81,7 @@ impl MonorepoManifest {
 
     fn from_lerna_manifest<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         let file = File::open(root.as_ref().join(Self::LERNA_MANIFEST_FILENAME))?;
         let reader = BufReader::new(file);
@@ -90,7 +96,7 @@ impl MonorepoManifest {
 
     fn from_package_manifest<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         let file = File::open(root.as_ref().join(Self::PACKAGE_MANIFEST_FILENAME))?;
         let reader = BufReader::new(file);
@@ -105,7 +111,7 @@ impl MonorepoManifest {
 
     pub fn from_directory<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         MonorepoManifest::from_lerna_manifest(&root)
             .or_else(|_| MonorepoManifest::from_package_manifest(&root))
