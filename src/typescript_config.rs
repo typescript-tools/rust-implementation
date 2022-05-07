@@ -1,7 +1,8 @@
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+
+use anyhow::Result;
 
 use crate::configuration_file::ConfigurationFile;
 
@@ -14,7 +15,7 @@ pub struct TypescriptConfig {
 impl ConfigurationFile<TypescriptConfig> for TypescriptConfig {
     const FILENAME: &'static str = "tsconfig.json";
 
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<TypescriptConfig, Box<dyn Error>>
+    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<TypescriptConfig>
     where
         P: AsRef<Path>,
     {
@@ -37,7 +38,7 @@ impl ConfigurationFile<TypescriptConfig> for TypescriptConfig {
         self.directory.join(Self::FILENAME)
     }
 
-    fn write(&self) -> Result<(), Box<dyn Error>> {
+    fn write(&self) -> Result<()> {
         let file = File::create(
             self.monorepo_root
                 .join(&self.directory)

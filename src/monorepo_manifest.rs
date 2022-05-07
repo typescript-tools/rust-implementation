@@ -1,12 +1,16 @@
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
+use std::marker::Sync;
 use std::path::Path;
+
+use anyhow::Result;
 
 use globwalk::{FileType, GlobWalkerBuilder};
 
 use serde::{Deserialize, Serialize};
+
+use pariter::IteratorExt as _;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::package_manifest::PackageManifest;
@@ -29,9 +33,9 @@ pub struct MonorepoManifest {
 fn get_internal_package_manifests<'a, P, I>(
     directory: P,
     package_globs: I,
-) -> Result<Vec<PackageManifest>, Box<dyn Error>>
+) -> Result<Vec<PackageManifest>>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + Sync,
     I: Iterator<Item = &'a String>,
 {
     let mut package_manifests: Vec<String> = package_globs
@@ -47,6 +51,8 @@ where
     // ignore paths to speed up file-system walk
     package_manifests.push(String::from("!node_modules/"));
 
+    let monorepo_root = directory.as_ref().to_owned();
+
     GlobWalkerBuilder::from_patterns(&directory, &package_manifests)
         .file_type(FileType::FILE)
         .min_depth(1)
@@ -54,27 +60,31 @@ where
         .expect("Unable to create glob")
         .into_iter()
         .filter_map(Result::ok)
-        .map(|dir_entry| {
-            PackageManifest::from_directory(
-                directory.as_ref(),
-                dir_entry
-                    .path()
-                    .parent()
-                    .expect("Unexpected package in monorepo root")
-                    .strip_prefix(directory.as_ref())
-                    .expect("Unexpected package in monorepo root"),
-            )
-        })
-        .collect::<Result<Vec<_>, Box<dyn Error>>>()
+        .parallel_map_custom(
+            |options| options.threads(32),
+            move |dir_entry| {
+                PackageManifest::from_directory(
+                    monorepo_root.clone(),
+                    dir_entry
+                        .path()
+                        .parent()
+                        .expect("Unexpected package in monorepo root")
+                        .strip_prefix(monorepo_root.clone())
+                        .expect("Unexpected package in monorepo root")
+                        .to_owned(),
+                )
+            },
+        )
+        .collect()
 }
 
 impl MonorepoManifest {
     const LERNA_MANIFEST_FILENAME: &'static str = "lerna.json";
     const PACKAGE_MANIFEST_FILENAME: &'static str = "package.json";
 
-    fn from_lerna_manifest<P>(root: P) -> Result<MonorepoManifest, Box<dyn Error>>
+    fn from_lerna_manifest<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         let file = File::open(root.as_ref().join(Self::LERNA_MANIFEST_FILENAME))?;
         let reader = BufReader::new(file);
@@ -87,9 +97,9 @@ impl MonorepoManifest {
         })
     }
 
-    fn from_package_manifest<P>(root: P) -> Result<MonorepoManifest, Box<dyn Error>>
+    fn from_package_manifest<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         let file = File::open(root.as_ref().join(Self::PACKAGE_MANIFEST_FILENAME))?;
         let reader = BufReader::new(file);
@@ -102,17 +112,15 @@ impl MonorepoManifest {
         })
     }
 
-    pub fn from_directory<P>(root: P) -> Result<MonorepoManifest, Box<dyn Error>>
+    pub fn from_directory<P>(root: P) -> Result<MonorepoManifest>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + Sync,
     {
         MonorepoManifest::from_lerna_manifest(&root)
             .or_else(|_| MonorepoManifest::from_package_manifest(&root))
     }
 
-    pub fn package_manifests_by_package_name(
-        &self,
-    ) -> Result<HashMap<String, &PackageManifest>, Box<dyn Error>> {
+    pub fn package_manifests_by_package_name(&self) -> Result<HashMap<String, &PackageManifest>> {
         self.internal_package_manifests
             .iter()
             .map(|manifest| Ok((manifest.contents.name.to_owned(), manifest)))
@@ -121,7 +129,7 @@ impl MonorepoManifest {
 
     pub fn into_package_manifests_by_package_name(
         self,
-    ) -> Result<HashMap<String, PackageManifest>, Box<dyn Error>> {
+    ) -> Result<HashMap<String, PackageManifest>> {
         self.internal_package_manifests
             .into_iter()
             .map(|manifest| Ok((manifest.contents.name.clone(), manifest)))

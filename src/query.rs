@@ -1,20 +1,19 @@
 use std::collections::HashMap;
-use std::error::Error;
+
+use anyhow::Result;
 
 use crate::opts;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::monorepo_manifest::MonorepoManifest;
 
-pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), Box<dyn Error>> {
+pub fn handle_subcommand(opts: crate::opts::Query) -> Result<()> {
     match opts.subcommand {
         opts::ClapQuerySubCommand::InternalDependencies(args) => query_internal_dependencies(&args),
     }
 }
 
-fn query_internal_dependencies(
-    opts: &crate::opts::InternalDependencies,
-) -> Result<(), Box<dyn Error>> {
+fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<()> {
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 

@@ -1,7 +1,8 @@
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+
+use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +20,7 @@ pub struct TypescriptParentProjectReference {
 pub fn write_project_references<P: AsRef<Path>>(
     path: P,
     references: &TypescriptParentProjectReference,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let file = File::create(&path)?;
     let mut writer = BufWriter::new(file);
     serde_json::to_writer_pretty(&mut writer, references)?;

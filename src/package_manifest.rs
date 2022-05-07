@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+
+use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,7 +45,7 @@ impl DependencyGroup {
 impl ConfigurationFile<PackageManifest> for PackageManifest {
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<PackageManifest, Box<dyn Error>>
+    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<PackageManifest>
     where
         P: AsRef<Path>,
     {
@@ -67,7 +68,7 @@ impl ConfigurationFile<PackageManifest> for PackageManifest {
         self.directory.join(Self::FILENAME)
     }
 
-    fn write(&self) -> Result<(), Box<dyn Error>> {
+    fn write(&self) -> Result<()> {
         let file = File::create(
             self.monorepo_root
                 .join(&self.directory)
@@ -88,6 +89,39 @@ impl AsRef<PackageManifest> for PackageManifest {
 }
 
 impl PackageManifest {
+    // Get the dependency
+    pub fn get_dependency_version<S>(&self, dependency: S) -> Option<String>
+    where
+        S: AsRef<str>,
+    {
+        static DEPENDENCY_GROUPS: &[&str] = &[
+            "dependencies",
+            "devDependencies",
+            "optionalDependencies",
+            "peerDependencies",
+        ];
+
+        DEPENDENCY_GROUPS
+            .iter()
+            // only iterate over the objects corresponding to each dependency group
+            .filter_map(|dependency_group| {
+                self.contents
+                    .extra_fields
+                    .get(dependency_group)?
+                    .as_object()
+            })
+            // get the target dependency version, if exists
+            .filter_map(|dependency_group_value| {
+                dependency_group_value
+                    .get(dependency.as_ref())
+                    // DISCUSS(Grayson): neither clone nor cloned work here, only to_owned
+                    // How do I resolve this with https://github.com/typescript-tools/rust-implementation/pull/141#discussion_r845294514 ?
+                    .and_then(|version_value| version_value.as_str().map(|a| a.to_owned()))
+            })
+            .take(1)
+            .next()
+    }
+
     pub fn internal_dependencies_iter<'a, T>(
         &'a self,
         package_manifests_by_package_name: &'a HashMap<String, &'a T>,
@@ -106,7 +140,10 @@ impl PackageManifest {
             .iter()
             // only iterate over the objects corresponding to each dependency group
             .filter_map(|dependency_group| {
-                self.contents.extra_fields.get(dependency_group)?.as_object()
+                self.contents
+                    .extra_fields
+                    .get(dependency_group)?
+                    .as_object()
             })
             // get all dependency names from all groups
             .flat_map(|dependency_group_value| dependency_group_value.keys())
@@ -132,8 +169,8 @@ impl PackageManifest {
         while let Some(current_manifest) = to_visit_package_manifests.pop_front() {
             seen_package_names.insert(&current_manifest.contents.name);
 
-            for dependency in current_manifest
-                .internal_dependencies_iter(package_manifest_by_package_name)
+            for dependency in
+                current_manifest.internal_dependencies_iter(package_manifest_by_package_name)
             {
                 internal_dependencies.insert(dependency.contents.name.to_owned());
                 if !seen_package_names.contains(&dependency.contents.name) {
