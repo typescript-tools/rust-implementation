@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{ensure, Result};
 
 use crate::opts;
 
@@ -88,9 +88,6 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<()> {
         is_exit_success = false;
     }
 
-    if is_exit_success {
-        return Ok(());
-    } else {
-        return Err(anyhow!("Found unexpected dependency versions"));
-    }
+    ensure!(is_exit_success, "Found unexpected dependency versions");
+    Ok(())
 }

@@ -10,7 +10,7 @@ use globwalk::{FileType, GlobWalkerBuilder};
 
 use serde::{Deserialize, Serialize};
 
-use dpc_pariter::IteratorExt as _;
+use pariter::IteratorExt as _;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::package_manifest::PackageManifest;
@@ -60,18 +60,21 @@ where
         .expect("Unable to create glob")
         .into_iter()
         .filter_map(Result::ok)
-        .parallel_map(move |dir_entry| {
-            PackageManifest::from_directory(
-                monorepo_root.clone(),
-                dir_entry
-                    .path()
-                    .parent()
-                    .expect("Unexpected package in monorepo root")
-                    .strip_prefix(monorepo_root.clone())
-                    .expect("Unexpected package in monorepo root")
-                    .to_owned(),
-            )
-        })
+        .parallel_map_custom(
+            |options| options.threads(32),
+            move |dir_entry| {
+                PackageManifest::from_directory(
+                    monorepo_root.clone(),
+                    dir_entry
+                        .path()
+                        .parent()
+                        .expect("Unexpected package in monorepo root")
+                        .strip_prefix(monorepo_root.clone())
+                        .expect("Unexpected package in monorepo root")
+                        .to_owned(),
+                )
+            },
+        )
         .collect()
 }
 

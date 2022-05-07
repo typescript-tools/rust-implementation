@@ -4,12 +4,7 @@ use anyhow::Result;
 
 use clap::Parser;
 
-use typescript_tools::link;
-use typescript_tools::lint;
-use typescript_tools::make_depend;
-use typescript_tools::opts;
-use typescript_tools::pin;
-use typescript_tools::query;
+use typescript_tools::{link, lint, make_depend, opts, pin, query};
 
 fn main() -> Result<()> {
     let opts = opts::Opts::parse();

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 
 use pathdiff::diff_paths;
 
@@ -205,9 +205,10 @@ pub fn link_typescript_project_references(opts: opts::Link) -> Result<()> {
     let is_dependencies_link_success = link_package_dependencies(&opts, &lerna_manifest)
         .expect("Unable to link internal package dependencies");
 
-    if opts.check_only && !(is_children_link_success && is_dependencies_link_success) {
-        return Err(anyhow!("Found out-of-date project references"));
-    }
+    ensure!(
+        opts.check_only && !(is_children_link_success && is_dependencies_link_success),
+        "Found out-of-date project references"
+    );
 
     // TODO(7): create `tsconfig.settings.json` files
 

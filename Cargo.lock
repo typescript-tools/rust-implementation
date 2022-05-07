@@ -323,15 +323,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dpc-pariter"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a6f60e0061d01135c7e9b77486a7f5a8e63ba14acbdbca73e42007cfd8a1c91"
-dependencies = [
- "pariter",
-]
-
-[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1067,8 +1058,8 @@ dependencies = [
  "anyhow",
  "askama",
  "clap 3.1.8",
- "dpc-pariter",
  "globwalk",
+ "pariter",
  "pathdiff",
  "semantic-release-rust",
  "serde",
