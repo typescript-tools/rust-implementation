@@ -6,7 +6,7 @@
 [![semantic-release]](https://github.com/semantic-release/semantic-release)
 
 [npm package]: https://img.shields.io/npm/v/@typescript-tools/rust-implementation.svg
-[build status]: https://github.com/typescript-tools/typescript-tools/actions/workflows/ci.yml/badge.svg
+[build status]: https://github.com/typescript-tools/typescript-tools/actions/workflows/ci.yml/badge.svg?branch=master
 [unsafe forbidden]: https://img.shields.io/badge/unsafe-forbidden-success.svg
 [semantic-release]: https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg
 
