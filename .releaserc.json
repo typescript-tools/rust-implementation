@@ -5,7 +5,10 @@
       {
         "preset": "angular",
         "releaseRules": [
-          {"type": "docs", "scope": "README.md", "release": "patch"}
+          {
+            "type": "docs",
+            "release": "patch"
+          }
         ]
       }
     ],
