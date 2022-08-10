@@ -23,5 +23,5 @@ COPY ./src ./src
 RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/monorepo* && \
     cargo build --release --target x86_64-unknown-linux-musl
 
-from alpine:3.16.1@sha256:7580ece7963bfa863801466c0a488f11c86f85d9988051a9f9c68cb27f6b7872
+from alpine:3.16.2@sha256:bc41182d7ef5ffc53a40b044e725193bc10142a1243f395ee852a8d9730fc2ad
 COPY --from=build-image /rust-implementation/target/x86_64-unknown-linux-musl/release/monorepo /usr/bin/monorepo
