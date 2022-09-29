@@ -1,19 +1,20 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
+use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
 
 use crate::configuration_file::ConfigurationFile;
+use crate::io::read_json_from_file;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageManifestFile {
     pub name: String,
-    // REFACTOR: do not spend time parsing this in all cases, only when necessary
     pub version: String,
     #[serde(flatten)]
     pub extra_fields: serde_json::Value,
@@ -45,17 +46,34 @@ impl DependencyGroup {
 impl ConfigurationFile<PackageManifest> for PackageManifest {
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<PackageManifest>
-    where
-        P: AsRef<Path>,
-    {
-        let containing_directory = monorepo_root.as_ref().join(&directory);
-        let file = File::open(containing_directory.join(Self::FILENAME))?;
-        let reader = BufReader::new(file);
-        let manifest_contents: PackageManifestFile = serde_json::from_reader(reader)?;
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<PackageManifest> {
+        let filename = monorepo_root.join(directory).join(Self::FILENAME);
+        let manifest_contents: PackageManifestFile =
+            read_json_from_file(&filename).with_context(|| {
+                formatdoc!(
+                    "
+                    Unexpected contents in {:?}
+
+                    I'm trying to parse the following properties and values out
+                    of this package.json file:
+
+                    - name: string
+                    - version: string
+
+                    and if the any of the following values are present, I expect
+                    them to be a JSON object with string keys and string values:
+
+                    - dependencies
+                    - devDependencies
+                    - optionalDependencies
+                    - peerDependencies
+                    ",
+                    filename
+                )
+            })?;
         Ok(PackageManifest {
-            monorepo_root: monorepo_root.as_ref().to_owned(),
-            directory: directory.as_ref().to_owned(),
+            monorepo_root: monorepo_root.to_owned(),
+            directory: directory.to_owned(),
             contents: manifest_contents,
         })
     }
@@ -122,13 +140,10 @@ impl PackageManifest {
             .next()
     }
 
-    pub fn internal_dependencies_iter<'a, T>(
+    pub fn internal_dependencies_iter<'a>(
         &'a self,
-        package_manifests_by_package_name: &'a HashMap<String, &'a T>,
-    ) -> impl Iterator<Item = &'a PackageManifest>
-    where
-        T: AsRef<PackageManifest>,
-    {
+        package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
+    ) -> impl Iterator<Item = &'a PackageManifest> {
         static DEPENDENCY_GROUPS: &[&str] = &[
             "dependencies",
             "devDependencies",
@@ -148,16 +163,12 @@ impl PackageManifest {
             // get all dependency names from all groups
             .flat_map(|dependency_group_value| dependency_group_value.keys())
             // filter out external packages
-            .filter_map(|package_name| {
-                package_manifests_by_package_name
-                    .get(package_name)
-                    .map(|&thing| thing.as_ref())
-            })
+            .filter_map(|package_name| package_manifests_by_package_name.get(package_name))
     }
 
     pub fn transitive_internal_dependency_package_names<'a>(
         &self,
-        package_manifest_by_package_name: &HashMap<String, &'a PackageManifest>,
+        package_manifest_by_package_name: &'a HashMap<String, PackageManifest>,
     ) -> Vec<&'a PackageManifest> {
         // Depth-first search all transitive internal dependencies of package
         let mut seen_package_names = HashSet::new();
@@ -186,7 +197,6 @@ impl PackageManifest {
                     .get(dependency_package_name)
                     .unwrap()
             })
-            .cloned()
             .collect()
     }
 
@@ -210,13 +220,13 @@ impl PackageManifest {
     pub fn npm_pack_file_basename(&self) -> String {
         format!(
             "{}-{}.tgz",
-            self.contents.name.trim_start_matches('@').replace("/", "-"),
+            self.contents.name.trim_start_matches('@').replace('/', "-"),
             &self.contents.version,
         )
     }
 
     pub fn unscoped_package_name(&self) -> &str {
-        match &self.contents.name.rsplit_once("/") {
+        match &self.contents.name.rsplit_once('/') {
             Some((_scope, name)) => name,
             None => &self.contents.name,
         }

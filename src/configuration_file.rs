@@ -9,9 +9,7 @@ pub trait ConfigurationFile<T> {
 
     /// Create an instance of this configuration file by reading
     /// the specified file from this directory on disk.
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<T>
-    where
-        P: AsRef<Path>;
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<T>;
 
     /// Relative path to directory containing this configuration file,
     /// from monorepo root.
