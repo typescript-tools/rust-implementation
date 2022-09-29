@@ -60,7 +60,7 @@ impl ConfigurationFile<PackageManifest> for PackageManifest {
                     - name: string
                     - version: string
 
-                    and if the any of the following values are present, I expect
+                    and if any of the following values are present, I expect
                     them to be a JSON object with string keys and string values:
 
                     - dependencies
