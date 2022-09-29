@@ -4,6 +4,10 @@ name: CI
 
 on: [ pull_request ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # This pipeline validates proposed changes.
 #
 # CI pipeline based on:
