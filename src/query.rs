@@ -17,9 +17,7 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
-    let package_manifest_by_package_name = lerna_manifest
-        .package_manifests_by_package_name()
-        .expect("Unable to read all package manifests");
+    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let internal_dependencies_by_package: HashMap<String, Vec<String>> =
         package_manifest_by_package_name.iter().fold(

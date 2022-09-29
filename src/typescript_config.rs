@@ -7,6 +7,7 @@ use anyhow::Result;
 use crate::configuration_file::ConfigurationFile;
 
 pub struct TypescriptConfig {
+    // FIXME: how many times do we need to duplicate this value?
     monorepo_root: PathBuf,
     directory: PathBuf,
     pub contents: serde_json::Value,
@@ -15,17 +16,13 @@ pub struct TypescriptConfig {
 impl ConfigurationFile<TypescriptConfig> for TypescriptConfig {
     const FILENAME: &'static str = "tsconfig.json";
 
-    fn from_directory<P>(monorepo_root: P, directory: P) -> Result<TypescriptConfig>
-    where
-        P: AsRef<Path>,
-    {
-        let containing_directory = monorepo_root.as_ref().join(&directory);
-        let file = File::open(containing_directory.join(Self::FILENAME))?;
-        let reader = BufReader::new(file);
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<TypescriptConfig> {
+        let filename = monorepo_root.join(&directory).join(Self::FILENAME);
+        let reader = BufReader::new(File::open(filename)?);
         let tsconfig_contents = serde_json::from_reader(reader)?;
         Ok(TypescriptConfig {
-            monorepo_root: monorepo_root.as_ref().to_owned(),
-            directory: directory.as_ref().to_owned(),
+            monorepo_root: monorepo_root.to_owned(),
+            directory: directory.to_owned(),
             contents: tsconfig_contents,
         })
     }

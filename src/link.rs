@@ -61,7 +61,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
     let mut is_exit_success = true;
 
     lerna_manifest
-        .internal_package_manifests
+        .internal_package_manifests()?
         .iter()
         .fold(HashMap::new(), key_children_by_parent)
         .iter()
@@ -102,9 +102,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
 }
 
 fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
-    let package_manifest_by_package_name = lerna_manifest
-        .package_manifests_by_package_name()
-        .expect("Unable to read all package manifests");
+    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name
         .iter()
@@ -118,6 +116,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
 
                 let desired_project_references: Vec<TypescriptProjectReference> = {
                     let mut typescript_project_references: Vec<String> = internal_dependencies
+                        .into_iter()
                         .map(|dependency| {
                             diff_paths(dependency.directory(), package_manifest.directory())
                             .expect(

@@ -15,9 +15,8 @@ struct UnpinnedDependency {
 
 pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<()> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
-    let mut package_manifest_by_package_name = lerna_manifest
-        .into_package_manifests_by_package_name()
-        .expect("Unable to read all package manifests");
+    let mut package_manifest_by_package_name =
+        lerna_manifest.package_manifests_by_package_name()?;
 
     let package_version_by_package_name: HashMap<String, String> = package_manifest_by_package_name
         .values()
@@ -34,7 +33,7 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
     for package_manifest in package_manifest_by_package_name.values_mut() {
         let mut dependencies_to_update: Vec<UnpinnedDependency> = Vec::new();
         for dependency_group in DependencyGroup::VALUES.iter() {
-            package_manifest
+            if let Some(mut unpinned_dependencies) = package_manifest
                 .get_dependency_group_mut(dependency_group)
                 .map(|dependencies| -> Vec<UnpinnedDependency> {
                     dependencies
@@ -71,9 +70,9 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
                         )
                         .collect()
                 })
-                .map(|mut unpinned_dependencies| {
-                    dependencies_to_update.append(&mut unpinned_dependencies)
-                });
+            {
+                dependencies_to_update.append(&mut unpinned_dependencies)
+            }
         }
 
         if !dependencies_to_update.is_empty() {

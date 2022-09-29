@@ -30,7 +30,7 @@ fn most_common_dependency_version(
 fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<()> {
     let opts::DependencyVersion { root, dependencies } = opts;
 
-    let lerna_manifest = MonorepoManifest::from_directory(&root)?;
+    let lerna_manifest = MonorepoManifest::from_directory(root)?;
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let mut is_exit_success = true;
