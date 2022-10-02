@@ -14,17 +14,17 @@ use crate::configuration_file::ConfigurationFile;
 use crate::io::read_json_from_file;
 use crate::package_manifest::PackageManifest;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct PackageManifestGlob(String);
 
 // REFACTOR: drop the File suffix in this identifier
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct LernaManifestFile {
     packages: Vec<PackageManifestGlob>,
 }
 
 // REFACTOR: drop the File suffix in this identifier
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct PackageManifestFile {
     workspaces: Vec<PackageManifestGlob>,
 }
