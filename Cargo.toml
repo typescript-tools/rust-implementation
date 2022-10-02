@@ -25,3 +25,4 @@ semantic-release-rust = "1.0.0-alpha.8"
 lto = true
 codegen-units = 1
 strip = true
+debug = true
