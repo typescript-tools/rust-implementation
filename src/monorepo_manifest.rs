@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use globwalk::{FileType, GlobWalkerBuilder};
 
 use indoc::formatdoc;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use pariter::IteratorExt as _;
 
@@ -14,17 +14,17 @@ use crate::configuration_file::ConfigurationFile;
 use crate::io::read_json_from_file;
 use crate::package_manifest::PackageManifest;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct PackageManifestGlob(String);
 
 // REFACTOR: drop the File suffix in this identifier
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct LernaManifestFile {
     packages: Vec<PackageManifestGlob>,
 }
 
 // REFACTOR: drop the File suffix in this identifier
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct PackageManifestFile {
     workspaces: Vec<PackageManifestGlob>,
 }
