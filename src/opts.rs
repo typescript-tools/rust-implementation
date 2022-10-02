@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{crate_version, ArgEnum, Parser};
+use clap::{crate_version, Parser, ValueEnum};
 
 #[derive(Parser)]
 #[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
@@ -73,7 +73,7 @@ pub enum ClapQuerySubCommand {
     InternalDependencies(InternalDependencies),
 }
 
-#[derive(ArgEnum, Clone)]
+#[derive(ValueEnum, Clone)]
 pub enum InternalDependenciesFormat {
     Name,
     Path,
@@ -85,7 +85,7 @@ pub struct InternalDependencies {
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
     /// Format in which to describe internal dependencies (defaults to name)
-    #[clap(long = "format", arg_enum, default_value = "name")]
+    #[clap(long = "format", value_enum, default_value = "name")]
     pub format: InternalDependenciesFormat,
 }
 
