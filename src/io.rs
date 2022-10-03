@@ -42,5 +42,5 @@ where
     let mut string = String::new();
     File::open(&filename)?.read_to_string(&mut string)?;
     serde_json::from_str(&string)
-        .with_context(|| format!("Unable to parse JSON from file '{:?}'", filename))
+        .with_context(|| format!("Unable to parse JSON from file {:?}", filename))
 }
