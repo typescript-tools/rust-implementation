@@ -168,8 +168,8 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
     let mut is_exit_success = true;
 
     tsconfig_diffs
-        .iter()
-        .filter_map(|update| update.as_ref())
+        .into_iter()
+        .flatten()
         .map(|tsconfig| -> Result<()> {
             if opts.check_only {
                 is_exit_success = false;
