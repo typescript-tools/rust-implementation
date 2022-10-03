@@ -132,8 +132,6 @@ impl PackageManifest {
             .filter_map(|dependency_group_value| {
                 dependency_group_value
                     .get(dependency.as_ref())
-                    // DISCUSS(Grayson): neither clone nor cloned work here, only to_owned
-                    // How do I resolve this with https://github.com/typescript-tools/rust-implementation/pull/141#discussion_r845294514 ?
                     .and_then(|version_value| version_value.as_str().map(|a| a.to_owned()))
             })
             .take(1)
