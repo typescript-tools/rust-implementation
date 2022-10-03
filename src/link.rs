@@ -19,7 +19,7 @@ fn key_children_by_parent(
     package_manifest: &PackageManifest,
 ) -> HashMap<PathBuf, Vec<String>> {
     let mut path_so_far = PathBuf::new();
-    for component in package_manifest.directory().iter() {
+    for component in package_manifest.directory().into_iter() {
         let children = accumulator.entry(path_so_far.clone()).or_default();
 
         let new_child = component
@@ -30,7 +30,7 @@ fn key_children_by_parent(
             children.push(new_child);
         }
 
-        path_so_far.push(&component);
+        path_so_far.push(component);
     }
     accumulator
 }
