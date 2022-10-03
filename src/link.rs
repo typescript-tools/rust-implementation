@@ -35,15 +35,13 @@ fn key_children_by_parent(
     accumulator
 }
 
-// Serialize the TypeScript project references.
-fn create_project_references(children: &[String]) -> TypescriptParentProjectReference {
+fn create_project_references(mut children: Vec<String>) -> TypescriptParentProjectReference {
     // Sort the TypeScript project references for deterministic file contents.
     // This minimizes diffs since the tsconfig.json files are stored in version control.
-    let mut sorted_children = children.to_owned();
-    sorted_children.sort_unstable();
+    children.sort_unstable();
     TypescriptParentProjectReference {
         files: Vec::new(),
-        references: sorted_children
+        references: children
             .into_iter()
             .map(|path| TypescriptProjectReference { path })
             .collect(),
@@ -64,11 +62,11 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
         .internal_package_manifests()?
         .iter()
         .fold(HashMap::new(), key_children_by_parent)
-        .iter()
+        .into_iter()
         .try_for_each(|(directory, children)| -> Result<()> {
             let desired_project_references = create_project_references(children);
-            let tsconfig_filename = opts.root.join(directory).join("tsconfig.json");
-            let tsconfig = TypescriptConfig::from_directory(&opts.root, directory)?;
+            let tsconfig_filename = opts.root.join(&directory).join("tsconfig.json");
+            let tsconfig = TypescriptConfig::from_directory(&opts.root, &directory)?;
             let current_project_references = tsconfig
                 .contents
                 .get("references")
