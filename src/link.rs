@@ -190,9 +190,6 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
 }
 
 pub fn link_typescript_project_references(opts: opts::Link) -> Result<()> {
-    // TODO: use `expect` less; instead favor ? and/or provide a library-specific Error type
-    // http://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/error-handling.html#advice-for-library-writers
-
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
