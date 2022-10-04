@@ -72,7 +72,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
                 .get("references")
                 .map(|value| {
                     serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
-                        .expect("Value starting as JSON should be serializable")
+                        .expect("Value starting as JSON should be serializable as JSON")
                 })
                 .unwrap_or_default();
             let needs_update = !vecs_match(
