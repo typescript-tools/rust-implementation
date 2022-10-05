@@ -44,11 +44,6 @@ fn create_project_references(mut children: Vec<String>) -> Vec<TypescriptProject
         .collect()
 }
 
-fn vecs_match<T: PartialEq>(a: &[T], b: &[T]) -> bool {
-    let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
-    matching == a.len() && matching == b.len()
-}
-
 // Create a tsconfig.json file in each parent directory to an internal package.
 // This permits us to compile the monorepo from the top down.
 fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
@@ -122,17 +117,16 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                 };
 
                 // Compare the current references against the desired references
-                let needs_update = !vecs_match(
-                    &desired_project_references,
-                    &tsconfig
-                        .contents
-                        .get("references")
-                        .map(|value| {
-                            serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
-                                .expect("Value starting as JSON should be serializable")
-                        })
-                        .unwrap_or_default(),
-                );
+                let current_project_references = &tsconfig
+                    .contents
+                    .get("references")
+                    .map(|value| {
+                        serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
+                            .expect("Value starting as JSON should be serializable")
+                    })
+                    .unwrap_or_default();
+
+                let needs_update = !current_project_references.eq(&desired_project_references);
                 if !needs_update {
                     return Ok(None);
                 }
