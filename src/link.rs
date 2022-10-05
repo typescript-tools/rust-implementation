@@ -1,18 +1,17 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::io::{
-    write_project_references, TypescriptParentProjectReference, TypescriptProjectReference,
-};
 use crate::monorepo_manifest::MonorepoManifest;
 use crate::opts;
 use crate::package_manifest::PackageManifest;
-use crate::typescript_config::TypescriptConfig;
+use crate::typescript_config::{
+    TypescriptConfig, TypescriptParentProjectReference, TypescriptProjectReference,
+};
 
 fn key_children_by_parent(
     mut accumulator: HashMap<PathBuf, Vec<String>>,
@@ -35,17 +34,14 @@ fn key_children_by_parent(
     accumulator
 }
 
-fn create_project_references(mut children: Vec<String>) -> TypescriptParentProjectReference {
+fn create_project_references(mut children: Vec<String>) -> Vec<TypescriptProjectReference> {
     // Sort the TypeScript project references for deterministic file contents.
     // This minimizes diffs since the tsconfig.json files are stored in version control.
     children.sort_unstable();
-    TypescriptParentProjectReference {
-        files: Vec::new(),
-        references: children
-            .into_iter()
-            .map(|path| TypescriptProjectReference { path })
-            .collect(),
-    }
+    children
+        .into_iter()
+        .map(|path| TypescriptProjectReference { path })
+        .collect()
 }
 
 fn vecs_match<T: PartialEq>(a: &[T], b: &[T]) -> bool {
@@ -54,7 +50,7 @@ fn vecs_match<T: PartialEq>(a: &[T], b: &[T]) -> bool {
 }
 
 // Create a tsconfig.json file in each parent directory to an internal package.
-// This permits us to build the monorepo from the top down.
+// This permits us to compile the monorepo from the top down.
 fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
     let mut is_exit_success = true;
 
@@ -66,19 +62,10 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
         .try_for_each(|(directory, children)| -> Result<()> {
             let desired_project_references = create_project_references(children);
             let tsconfig_filename = opts.root.join(&directory).join("tsconfig.json");
-            let tsconfig = TypescriptConfig::from_directory(&opts.root, &directory)?;
-            let current_project_references = tsconfig
-                .contents
-                .get("references")
-                .map(|value| {
-                    serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
-                        .expect("Value starting as JSON should be serializable as JSON")
-                })
-                .unwrap_or_default();
-            let needs_update = !vecs_match(
-                &current_project_references,
-                &desired_project_references.references,
-            );
+            let mut tsconfig =
+                TypescriptParentProjectReference::from_directory(&opts.root, &directory)?;
+            let current_project_references = tsconfig.contents.references;
+            let needs_update = !current_project_references.eq(&desired_project_references);
             if !needs_update {
                 return Ok(());
             }
@@ -92,7 +79,8 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
                 println!("{}", serialized);
                 Ok(())
             } else {
-                write_project_references(tsconfig_filename, &desired_project_references)
+                tsconfig.contents.references = desired_project_references;
+                tsconfig.write()
             }
         })?;
 
@@ -150,14 +138,10 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                 }
 
                 // Update the current tsconfig with the desired references
-                tsconfig
-                    .contents
-                    .as_object_mut()
-                    .ok_or_else(|| anyhow!("Expected tsconfig.json to contain an Object"))?
-                    .insert(
-                        String::from("references"),
-                        serde_json::to_value(desired_project_references)?,
-                    );
+                tsconfig.contents.insert(
+                    String::from("references"),
+                    serde_json::to_value(desired_project_references)?,
+                );
 
                 Ok(Some(tsconfig))
             },
