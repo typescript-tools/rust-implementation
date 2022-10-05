@@ -1,36 +1,11 @@
 use anyhow::Context;
 use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::io::Read;
 use std::path::Path;
 
 use anyhow::Result;
 
-use serde::{Deserialize, Serialize};
-
-// REFACTOR: this belongs in a different file
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct TypescriptProjectReference {
-    pub path: String,
-}
-
-// REFACTOR: this belongs in a different file
-#[derive(Serialize, PartialEq, Eq)]
-pub struct TypescriptParentProjectReference {
-    pub files: Vec<String>,
-    pub references: Vec<TypescriptProjectReference>,
-}
-
-pub fn write_project_references<P: AsRef<Path>>(
-    path: P,
-    references: &TypescriptParentProjectReference,
-) -> Result<()> {
-    let file = File::create(&path)?;
-    let mut writer = BufWriter::new(file);
-    serde_json::to_writer_pretty(&mut writer, references)?;
-    writer.write_all(b"\n")?;
-    writer.flush()?;
-    Ok(())
-}
+use serde::Deserialize;
 
 pub(crate) fn read_json_from_file<T>(filename: &Path) -> Result<T>
 where
