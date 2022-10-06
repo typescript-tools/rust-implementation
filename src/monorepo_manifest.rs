@@ -8,7 +8,7 @@ use globwalk::{FileType, GlobWalkerBuilder};
 use indoc::formatdoc;
 use serde::Deserialize;
 
-use pariter::IteratorExt as _;
+use pariter::IteratorExt;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::read_json_from_file;
