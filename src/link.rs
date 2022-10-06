@@ -24,7 +24,7 @@ fn key_children_by_parent(
         let new_child = component
             .to_str()
             .expect("Path not valid UTF-8 encoded")
-            .to_string();
+            .to_owned();
         if !children.contains(&new_child) {
             children.push(new_child);
         }
