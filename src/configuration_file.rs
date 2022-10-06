@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
+// REFACTOR: most of this impl is the same across all types
 /// Configuration file for some component of the monorepo.
 pub trait ConfigurationFile<T> {
     /// Basename of the configuration file.

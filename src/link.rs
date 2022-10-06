@@ -25,6 +25,7 @@ fn key_children_by_parent(
             .to_str()
             .expect("Path not valid UTF-8 encoded")
             .to_owned();
+        // DISCUSS: when would this list already contain the child?
         if !children.contains(&new_child) {
             children.push(new_child);
         }
@@ -54,6 +55,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
         .iter()
         .fold(HashMap::new(), key_children_by_parent)
         .into_iter()
+        // DISCUSS: trying all of this in parallel
         .try_for_each(|(directory, children)| -> Result<()> {
             let desired_project_references = create_project_references(children);
             let mut tsconfig =
@@ -82,6 +84,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
 }
 
 fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
+    // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name
@@ -121,6 +124,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                     .get("references")
                     .map(|value| {
                         serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
+                            // FIXME: this is an incorrect error message
                             .expect("Value starting as JSON should be serializable")
                     })
                     .unwrap_or_default();
@@ -158,6 +162,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                 println!("{}", serialized);
                 Ok(())
             } else {
+                // DISCUSS: we could parallelize the writes
                 tsconfig.write()
             }
         })

@@ -62,6 +62,7 @@ fn get_internal_package_manifests(
         .build()
         .expect("Unable to create glob")
         .into_iter()
+        // FIXME: do not drop errors silently
         .filter_map(Result::ok)
         .parallel_map_custom(
             |options| options.threads(32),
