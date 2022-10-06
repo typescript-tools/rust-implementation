@@ -56,10 +56,9 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
         .into_iter()
         .try_for_each(|(directory, children)| -> Result<()> {
             let desired_project_references = create_project_references(children);
-            let tsconfig_filename = opts.root.join(&directory).join("tsconfig.json");
             let mut tsconfig =
                 TypescriptParentProjectReference::from_directory(&opts.root, &directory)?;
-            let current_project_references = tsconfig.contents.references;
+            let current_project_references = &tsconfig.contents.references;
             let needs_update = !current_project_references.eq(&desired_project_references);
             if !needs_update {
                 return Ok(());
@@ -69,7 +68,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
                 let serialized = serde_json::to_string_pretty(&desired_project_references)?;
                 println!(
                     "File has out-of-date project references: {:?}, expecting:",
-                    tsconfig_filename
+                    tsconfig.path()
                 );
                 println!("{}", serialized);
                 Ok(())
