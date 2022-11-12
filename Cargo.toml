@@ -7,6 +7,10 @@ edition = "2021"
 name = "monorepo"
 path = "src/main.rs"
 
+[lib]
+name = "typescript_tools"
+path = "src/lib.rs"
+
 [dependencies]
 anyhow = "1.0.57"
 askama = "0.11.1"

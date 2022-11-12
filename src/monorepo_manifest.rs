@@ -2,13 +2,10 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-
 use globwalk::{FileType, GlobWalkerBuilder};
-
 use indoc::formatdoc;
-use serde::Deserialize;
-
 use pariter::IteratorExt;
+use serde::Deserialize;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::read_json_from_file;
