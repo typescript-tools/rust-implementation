@@ -1,14 +1,8 @@
 # TypeScript Tools 🦀
 
-[![NPM Package][]](https://npmjs.org/package/@typescript-tools/rust-implementation)
-[![Build Status]](https://github.com/typescript-tools/rust-implementation/actions/workflows/ci.yml)
-[![unsafe forbidden]](https://github.com/rust-secure-code/safety-dance/)
-[![semantic-release]](https://github.com/semantic-release/semantic-release)
+[![Build Status]](https://github.com/typescript-tools/rust-implementation/actions/workflows/release.yml)
 
-[npm package]: https://img.shields.io/npm/v/@typescript-tools/rust-implementation.svg
-[build status]: https://github.com/typescript-tools/typescript-tools/actions/workflows/ci.yml/badge.svg?branch=master
-[unsafe forbidden]: https://img.shields.io/badge/unsafe-forbidden-success.svg
-[semantic-release]: https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg
+[build status]: https://github.com/typescript-tools/rust-implementation/actions/workflows/release.yml/badge.svg?event=push
 
 The `typescript-tools` are an opinionated collection of utilities for working with
 TypeScript monorepos. Read more in the [typescript-tools spec].
