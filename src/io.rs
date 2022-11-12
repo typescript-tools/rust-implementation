@@ -15,7 +15,7 @@ where
     // invoking Serde from a BufReader, see
     // https://github.com/serde-rs/json/issues/160
     let mut string = String::new();
-    File::open(&filename)?.read_to_string(&mut string)?;
+    File::open(filename)?.read_to_string(&mut string)?;
     serde_json::from_str(&string)
         .with_context(|| format!("Unable to parse JSON from file {:?}", filename))
 }

@@ -51,7 +51,7 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
             },
         );
 
-    let json_value = serde_json::to_value(&internal_dependencies_by_package)
+    let json_value = serde_json::to_value(internal_dependencies_by_package)
         .expect("Unable to serialize internal dependency map");
     let json_string =
         serde_json::to_string_pretty(&json_value).expect("JSON value should be serializable");

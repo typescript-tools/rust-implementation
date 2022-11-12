@@ -97,7 +97,7 @@ impl ConfigurationFile<TypescriptConfig> for TypescriptConfig {
 
     // TODO: parse with a helpful error message here
     fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<TypescriptConfig> {
-        let filename = monorepo_root.join(&directory).join(Self::FILENAME);
+        let filename = monorepo_root.join(directory).join(Self::FILENAME);
         let reader = BufReader::new(File::open(filename)?);
         let tsconfig_contents = serde_json::from_reader(reader)?;
         Ok(TypescriptConfig {

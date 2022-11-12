@@ -18,7 +18,7 @@ fn key_children_by_parent(
     package_manifest: &PackageManifest,
 ) -> HashMap<PathBuf, Vec<String>> {
     let mut path_so_far = PathBuf::new();
-    for component in package_manifest.directory().into_iter() {
+    for component in package_manifest.directory().iter() {
         let children = accumulator.entry(path_so_far.clone()).or_default();
 
         let new_child = component
@@ -87,10 +87,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
     // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
-    let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name
-        .iter()
-        .map(
-            |(_scoped_package_name, package_manifest)| -> Result<Option<TypescriptConfig>> {
+    let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name.values().map(|package_manifest| {
                 let package_directory = package_manifest.directory();
                 let mut tsconfig =
                     TypescriptConfig::from_directory(&opts.root, &package_directory)?;
@@ -141,8 +138,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                 );
 
                 Ok(Some(tsconfig))
-            },
-        )
+            })
         .collect::<Result<Vec<Option<TypescriptConfig>>>>()?;
 
     // take action on the computed diffs

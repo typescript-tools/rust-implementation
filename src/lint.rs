@@ -41,7 +41,7 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<()> {
                 .values()
                 .filter_map(|package_manifest| {
                     package_manifest
-                        .get_dependency_version(&dependency)
+                        .get_dependency_version(dependency)
                         .map(|dependency_version| (package_manifest, dependency_version))
                 })
                 .fold(

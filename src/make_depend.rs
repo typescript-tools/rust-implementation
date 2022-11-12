@@ -104,7 +104,7 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<()> {
     .expect("Unable to render makefile template");
 
     fs::write(
-        &opts.package_directory.join(&opts.output_file),
+        opts.package_directory.join(opts.output_file),
         makefile_contents,
     )
     .expect("Unable to write makefile");
