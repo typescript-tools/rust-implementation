@@ -197,6 +197,25 @@ jobs:
     - name: Combine checksums
       run: cat dist/**/typescript-tools-*-SHASUMS256.txt | tee npm/SHASUMS256.txt
 
+    - name: Cache cargo
+      uses: actions/cache@v3
+      id: cache-cargo
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install semantic-release-rust
+      uses: actions-rs/cargo@v1
+      if: steps.cache-cargo.outputs.cache-hit != 'true'
+      with:
+        command: install
+        args: semantic-release-rust --version 1.0.0-alpha.8
+
     - name: Invoke semantic-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

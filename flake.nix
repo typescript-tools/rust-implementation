@@ -51,8 +51,6 @@
         # doCheck = true;
         buildInputs = with pkgs; [
           fenix-channel.rustc
-          fenix-channel.clippy
-          nodePackages.typescript
         ];
 
         nativeBuildInputs = with pkgs; [
@@ -122,8 +120,8 @@
               fenix-toolchain
               fenix.packages.${system}.rust-analyzer
 
-              # Nix
               pkgs.cargo-watch
+              pkgs.nodejs
               pkgs.rnix-lsp
             ];
 
