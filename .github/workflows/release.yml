@@ -54,7 +54,7 @@ jobs:
 
     - name: Calculate next semantic-release version
       id: calculate
-      run: echo "::set-output name=next-version::$(npx standard-version --dry-run | grep "tagging release" | awk '{ print $NF }')"
+      run: echo "next-version=$(npx standard-version --dry-run | grep "tagging release" | awk '{ print $NF }')" >> $GITHUB_OUTPUT
 
   # Room for improvement regarding caching/work-skipping. One example here
   # https://github.com/ClementTsang/bottom/blob/92ec3599363c710815c286e975bbb6cc748708dd/.github/workflows/ci.yml#L195
