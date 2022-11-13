@@ -2,6 +2,13 @@
 name = "typescript_tools"
 version = "0.0.0-semantically-released"
 edition = "2021"
+authors = ["Eric Crosson <eric.s.crosson@utexas.edu>"]
+license = "ISC"
+description = "Tools for working with TypeScript monorepos"
+readme = "README.md"
+homepage = "https://github.com/typescript-tools/rust-implementation"
+keywords = ["cli", "typescript", "monorepo"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "monorepo"
