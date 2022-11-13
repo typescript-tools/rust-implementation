@@ -120,7 +120,6 @@
               fenix-toolchain
               fenix.packages.${system}.rust-analyzer
 
-              pkgs.cargo-watch
               pkgs.nodejs
               pkgs.rnix-lsp
             ];
