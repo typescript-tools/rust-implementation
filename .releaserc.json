@@ -59,6 +59,14 @@
           }
         ]
       }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyContitionsCmd": "semantic-release-rust verify-conditions",
+        "prepareCmd": "semantic-release-rust prepare ${nextRelease.version}",
+        "publishCmd": "semantic-release-rust publish"
+      }
     ]
   ]
 }
