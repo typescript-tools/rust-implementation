@@ -9,6 +9,23 @@ readme = "README.md"
 homepage = "https://github.com/typescript-tools/rust-implementation"
 keywords = ["cli", "typescript", "monorepo"]
 categories = ["command-line-utilities"]
+exclude = [
+  "/.dockerignore",
+  "/.editorconfig",
+  "/.envrc",
+  "/.github",
+  "/.gitignore",
+  "/.releaserc.json",
+  "/.rustfmt.toml",
+  "/.versionrc.json",
+  "/Dockerfile",
+  "/bin/monorepo",
+  "/deny.toml",
+  "/CHANGELOG.md",
+  "/flake.{lock,nix}",
+  "/npm",
+  "/package*.json"
+]
 
 [[bin]]
 name = "monorepo"
