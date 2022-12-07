@@ -164,7 +164,7 @@ impl PackageManifest {
             .filter_map(|package_name| package_manifests_by_package_name.get(package_name))
     }
 
-    pub fn transitive_internal_dependency_package_names<'a>(
+    pub fn transitive_internal_dependency_package_names_exclusive<'a>(
         &self,
         package_manifest_by_package_name: &'a HashMap<String, PackageManifest>,
     ) -> Vec<&'a PackageManifest> {
