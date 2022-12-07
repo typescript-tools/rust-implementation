@@ -35,7 +35,7 @@ pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<()> {
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let internal_dependencies_exclusive = package_manifest
-        .transitive_internal_dependency_package_names(&package_manifest_by_package_name);
+        .transitive_internal_dependency_package_names_exclusive(&package_manifest_by_package_name);
 
     let internal_dependency_package_json_filenames_inclusive: Vec<PathBuf> = {
         let mut dependency_dirs = internal_dependencies_exclusive

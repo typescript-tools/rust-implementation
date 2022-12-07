@@ -32,7 +32,7 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
                         .to_owned(),
                 };
                 let values: Vec<String> = package_manifest
-                    .transitive_internal_dependency_package_names(&package_manifest_by_package_name)
+                    .transitive_internal_dependency_package_names_exclusive(&package_manifest_by_package_name)
                     .into_iter()
                     .map(|dependency| match opts.format {
                         opts::InternalDependenciesFormat::Name => {
