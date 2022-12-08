@@ -1,3 +1,14 @@
+# [5.0.0](https://github.com/typescript-tools/rust-implementation/compare/v4.3.5...v5.0.0) (2022-12-08)
+
+
+* fix!: rename function with _exclusive suffix ([aeb54fe](https://github.com/typescript-tools/rust-implementation/commit/aeb54fe5cd802126417b6c0379ea5fa36e5e6076)), closes [#216](https://github.com/typescript-tools/rust-implementation/issues/216)
+
+
+### BREAKING CHANGES
+
+* rename `transitive_internal_dependency_package_names`
+to `transitive_internal_dependency_package_names_exclusive`.
+
 ## [4.3.5](https://github.com/typescript-tools/rust-implementation/compare/v4.3.4...v4.3.5) (2022-12-08)
 
 
