@@ -29,6 +29,18 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  get-next-version:
+    name: Calculate next release
+    runs-on: ubuntu-latest
+    outputs:
+      new-release-published: ${{ steps.get-next-version.outputs.new-release-published }}
+      new-release-version: ${{ steps.get-next-version.outputs.new-release-version }}
+
+    steps:
+      - name: Calculate next semantic-release version
+        id: get-next-version
+        uses: semantic-release-extras/next-release-version@v1
+
   test:
     name: Cargo test
     runs-on: ubuntu-latest
@@ -56,44 +68,6 @@ jobs:
 
       - name: Cargo test
         run: cargo test
-
-  get-next-version:
-    name: Calculate next release
-    runs-on: ubuntu-latest
-    outputs:
-      new-release-published: ${{ steps.get-next-version.outputs.new-release-published }}
-      new-release-version: ${{ steps.get-next-version.outputs.new-release-version }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          # Fetch all history and tags for calculating next semantic version
-          fetch-depth: 0
-
-      - name: Configure Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: lts/*
-          cache: npm
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        id: cache-node-modules
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-
-      - name: Install npm dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
-
-      - name: Calculate next semantic-release version
-        id: calculate
-        run: echo "next-version=$(npx standard-version --dry-run | grep "tagging release" | awk '{ print $NF }')" >> $GITHUB_OUTPUT
-
-  # Room for improvement regarding caching/work-skipping. One example here
-  # https://github.com/ClementTsang/bottom/blob/92ec3599363c710815c286e975bbb6cc748708dd/.github/workflows/ci.yml#L195
 
   ### Compile release artifacts
   build-release:
