@@ -16,7 +16,6 @@ concurrency:
 
 env:
   BINARY_NAME: monorepo
-  CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
 jobs:
