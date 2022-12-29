@@ -49,12 +49,11 @@
 
         # Add extra inputs here or any other derivation settings
         # doCheck = true;
-        buildInputs = with pkgs; [
+        buildInputs = [
           fenix-channel.rustc
         ];
 
-        nativeBuildInputs = with pkgs; [
-        ];
+        nativeBuildInputs = [];
       };
 
       # Build *just* the cargo dependencies, so we can reuse
@@ -92,6 +91,7 @@
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
         src = ./.;
         hooks = {
+          actionlint.enable = true;
           alejandra.enable = true;
           prettier.enable = true;
         };
@@ -109,7 +109,7 @@
       devShells = {
         default = nixpkgs.legacyPackages.${system}.mkShell {
           buildInputs = commonArgs.buildInputs;
-          nativeBuildInputs = with pkgs;
+          nativeBuildInputs =
             commonArgs.nativeBuildInputs
             ++ [
               fenix-toolchain
