@@ -5,6 +5,7 @@ on: [pull_request]
 
 jobs:
   check_licenses:
+    name: Check licenses
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,6 +17,7 @@ jobs:
           command: check licenses
 
   check_sources:
+    name: Check sources
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

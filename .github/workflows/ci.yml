@@ -20,10 +20,13 @@ env:
 
 jobs:
   build-docker-image:
+    name: Build docker image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      # TODO: use buildx caching
 
       - name: Build docker image
         run: docker build -f Dockerfile .
@@ -31,31 +34,44 @@ jobs:
   # Room for improvement regarding caching/work-skipping. One example here
   # https://github.com/ClementTsang/bottom/blob/92ec3599363c710815c286e975bbb6cc748708dd/.github/workflows/ci.yml#L195
   cargo-check:
-    runs-on: ${{ matrix.triple.os }}
+    name: Cargo check
+    runs-on: ${{ matrix.build.os }}
+    env:
+      CARGO: cargo
+
     strategy:
       matrix:
-        triple:
-          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-musl", cross: false }
-          - { os: "ubuntu-latest", target: "i686-unknown-linux-musl", cross: true }
-          - { os: "macOS-latest", target: "x86_64-apple-darwin", cross: false }
-          # aarch64
-          - { os: "ubuntu-latest", target: "aarch64-unknown-linux-musl", cross: true }
-          # macOS ARM
-          - { os: "macOS-latest", target: "aarch64-apple-darwin", cross: true }
+        build:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross: false
+          - os: ubuntu-latest
+            target: i686-unknown-linux-musl
+            cross: true
+          - os: macOS-latest
+            target: x86_64-apple-darwin
+            cross: false
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            cross: true
+          - os: macOS-latest
+            target: aarch64-apple-darwin
+            cross: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Install build inputs
+        if: runner.os == 'Linux' && !matrix.build.cross
         run: sudo apt install musl-tools
-        if: runner.os == 'Linux' && matrix.triple.cross == false
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         id: rust-toolchain
         with:
           toolchain: stable
-          target: ${{ matrix.triple.target }}
+          target: ${{ matrix.build.target }}
 
       - name: Install cross
         uses: taiki-e/install-action@v2
@@ -74,17 +90,9 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-targets --verbose --target=${{ matrix.triple.target }}
-          use-cross: ${{ matrix.triple.cross }}
-
-      - name: Cross-compile
-        if: matrix.triple.cross == true
-        run: cross check --all-targets --target ${{ matrix.triple.target }} --verbose
+      - name: Configure cross
+        if: matrix.build.cross
+        run: echo "CARGO=cross" >> "$GITHUB_ENV"
 
       - name: Compile
-        if: matrix.triple.cross == false
-        run: cargo check --all-targets --target ${{ matrix.triple.target }} --verbose
+        run: ${{ env.CARGO }} check --all-targets --target ${{ matrix.build.target }} --verbose
