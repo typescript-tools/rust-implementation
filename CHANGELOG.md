@@ -1,3 +1,10 @@
+## [5.0.3](https://github.com/typescript-tools/rust-implementation/compare/v5.0.2...v5.0.3) (2023-01-14)
+
+
+### Bug Fixes
+
+* **deps:** migrate to semantic-release-action/next-release-version ([ca788a1](https://github.com/typescript-tools/rust-implementation/commit/ca788a155886debd53aaf71e2edc066c09a2e41f))
+
 ## [5.0.2](https://github.com/typescript-tools/rust-implementation/compare/v5.0.1...v5.0.2) (2023-01-14)
 
 
