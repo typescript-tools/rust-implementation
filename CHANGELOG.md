@@ -1,3 +1,10 @@
+## [5.0.10](https://github.com/typescript-tools/rust-implementation/compare/v5.0.9...v5.0.10) (2023-01-18)
+
+
+### Bug Fixes
+
+* **deps:** update dependency rimraf to v4.1.1 ([8cc3c95](https://github.com/typescript-tools/rust-implementation/commit/8cc3c957568ff163ef1746f2bf7de9f1bb4d7556))
+
 ## [5.0.9](https://github.com/typescript-tools/rust-implementation/compare/v5.0.8...v5.0.9) (2023-01-18)
 
 
