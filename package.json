@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "axios": "1.2.3",
-    "rimraf": "4.1.1",
+    "rimraf": "4.1.2",
     "tar": "6.1.13"
   },
   "devDependencies": {
