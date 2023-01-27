@@ -1,3 +1,10 @@
+## [5.0.13](https://github.com/typescript-tools/rust-implementation/compare/v5.0.12...v5.0.13) (2023-01-27)
+
+
+### Bug Fixes
+
+* **deps:** update dependency axios to v1.2.5 ([4dc2e07](https://github.com/typescript-tools/rust-implementation/commit/4dc2e07b8da066f1b52d32d8e4e0f07bcfd9cf08))
+
 ## [5.0.12](https://github.com/typescript-tools/rust-implementation/compare/v5.0.11...v5.0.12) (2023-01-25)
 
 
