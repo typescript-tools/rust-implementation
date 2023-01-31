@@ -1,3 +1,10 @@
+## [5.0.15](https://github.com/typescript-tools/rust-implementation/compare/v5.0.14...v5.0.15) (2023-01-31)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate indoc to v2 ([4719263](https://github.com/typescript-tools/rust-implementation/commit/47192639c13970819e2305f25406d6200e5d7270))
+
 ## [5.0.14](https://github.com/typescript-tools/rust-implementation/compare/v5.0.13...v5.0.14) (2023-01-28)
 
 
