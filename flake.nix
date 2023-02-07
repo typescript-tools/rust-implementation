@@ -28,9 +28,16 @@
 
       craneLib = crane.lib.${system};
 
+      templateFilter = path: _type: builtins.baseNameOf path == "makefile";
+      templateOrCargo = path: type:
+        (templateFilter path type) || (craneLib.filterCargoSources path type);
+
       # Common derivation arguments used for all builds
       commonArgs = {
-        src = craneLib.cleanCargoSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          src = ./.;
+          filter = templateOrCargo;
+        };
       };
 
       # Build *just* the cargo dependencies, so we can reuse
