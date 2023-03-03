@@ -1,6 +1,6 @@
 {
   "name": "@typescript-tools/rust-implementation",
-  "version": "5.0.20",
+  "version": "5.0.21",
   "license": "ISC",
   "publishConfig": {
     "access": "public"
