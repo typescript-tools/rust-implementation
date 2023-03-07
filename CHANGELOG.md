@@ -1,3 +1,10 @@
+## [5.0.23](https://github.com/typescript-tools/rust-implementation/compare/v5.0.22...v5.0.23) (2023-03-07)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate askama to 0.12.0 ([8e327ab](https://github.com/typescript-tools/rust-implementation/commit/8e327ab61136da65194d30b8772c2e9fec4d154a))
+
 ## [5.0.22](https://github.com/typescript-tools/rust-implementation/compare/v5.0.21...v5.0.22) (2023-03-04)
 
 
