@@ -1,3 +1,10 @@
+## [5.0.27](https://github.com/typescript-tools/rust-implementation/compare/v5.0.26...v5.0.27) (2023-03-27)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate anyhow to v1.0.70 ([83ff329](https://github.com/typescript-tools/rust-implementation/commit/83ff32951a08f55835532d97bff9bd5bd92cdbed))
+
 ## [5.0.26](https://github.com/typescript-tools/rust-implementation/compare/v5.0.25...v5.0.26) (2023-03-23)
 
 
