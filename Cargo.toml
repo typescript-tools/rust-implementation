@@ -43,7 +43,7 @@ globwalk = "=0.8.1"
 indoc = "=2.0.1"
 pariter = "=0.5.1"
 pathdiff = "=0.2.1"
-serde = { version = "=1.0.137", features = ["derive"] }
+serde = { version = "=1.0.159", features = ["derive"] }
 serde_json = { version = "=1.0.81", features = ["preserve_order"] }
 
 [dev-dependencies]
