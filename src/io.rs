@@ -1,6 +1,5 @@
 use anyhow::Context;
-use std::fs::File;
-use std::io::Read;
+use std::fs;
 use std::path::Path;
 
 use anyhow::Result;
@@ -14,8 +13,7 @@ where
     // Reading a file into a string before invoking Serde is faster than
     // invoking Serde from a BufReader, see
     // https://github.com/serde-rs/json/issues/160
-    let mut string = String::new();
-    File::open(filename)?.read_to_string(&mut string)?;
+    let string = fs::read_to_string(filename)?;
     serde_json::from_str(&string)
         .with_context(|| format!("Unable to parse JSON from file {:?}", filename))
 }
