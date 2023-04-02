@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 
 use crate::configuration_file::ConfigurationFile;
 use crate::monorepo_manifest::MonorepoManifest;
-use crate::package_manifest::DependencyGroup;
+use crate::package_manifest::{DependencyGroup, PackageManifest};
 
 #[derive(Clone)]
 struct UnpinnedDependency {
@@ -15,8 +15,7 @@ struct UnpinnedDependency {
 
 pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<()> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
-    let mut package_manifest_by_package_name =
-        lerna_manifest.package_manifests_by_package_name()?;
+    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let package_version_by_package_name: HashMap<String, String> = package_manifest_by_package_name
         .values()
@@ -30,7 +29,7 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
 
     let mut exit_code = 0;
 
-    for package_manifest in package_manifest_by_package_name.values_mut() {
+    for (_package_name, mut package_manifest) in package_manifest_by_package_name.into_iter() {
         let mut dependencies_to_update: Vec<UnpinnedDependency> = Vec::new();
         for dependency_group in DependencyGroup::VALUES.iter() {
             if let Some(mut unpinned_dependencies) = package_manifest
@@ -89,7 +88,7 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
                     );
                 }
             } else {
-                package_manifest.write()?;
+                PackageManifest::write(&opts.root, package_manifest)?;
             }
         }
     }

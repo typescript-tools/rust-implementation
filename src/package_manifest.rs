@@ -1,6 +1,4 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::fs::File;
-use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -22,7 +20,6 @@ pub struct PackageManifestFile {
 
 #[derive(Clone, Debug)]
 pub struct PackageManifest {
-    monorepo_root: PathBuf,
     directory: PathBuf,
     pub contents: PackageManifestFile,
 }
@@ -43,10 +40,12 @@ impl DependencyGroup {
     ];
 }
 
-impl ConfigurationFile<PackageManifest> for PackageManifest {
+impl ConfigurationFile for PackageManifest {
+    type Contents = PackageManifestFile;
+
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<PackageManifest> {
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self> {
         let filename = monorepo_root.join(directory).join(Self::FILENAME);
         let manifest_contents: PackageManifestFile =
             read_json_from_file(&filename).with_context(|| {
@@ -72,7 +71,6 @@ impl ConfigurationFile<PackageManifest> for PackageManifest {
                 )
             })?;
         Ok(PackageManifest {
-            monorepo_root: monorepo_root.to_owned(),
             directory: directory.to_owned(),
             contents: manifest_contents,
         })
@@ -86,17 +84,8 @@ impl ConfigurationFile<PackageManifest> for PackageManifest {
         self.directory.join(Self::FILENAME)
     }
 
-    fn write(&self) -> Result<()> {
-        let file = File::create(
-            self.monorepo_root
-                .join(&self.directory)
-                .join(Self::FILENAME),
-        )?;
-        let mut writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, &self.contents)?;
-        writer.write_all(b"\n")?;
-        writer.flush()?;
-        Ok(())
+    fn contents(&self) -> &PackageManifestFile {
+        &self.contents
     }
 }
 

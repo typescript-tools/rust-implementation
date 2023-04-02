@@ -76,7 +76,9 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
                 Ok(())
             } else {
                 tsconfig.contents.references = desired_project_references;
-                tsconfig.write()
+                Ok(TypescriptParentProjectReference::write(
+                    &opts.root, tsconfig,
+                )?)
             }
         })?;
 
@@ -87,58 +89,59 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
     // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
-    let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name.values().map(|package_manifest| {
-                let package_directory = package_manifest.directory();
-                let mut tsconfig =
-                    TypescriptConfig::from_directory(&opts.root, &package_directory)?;
-                let internal_dependencies =
-                    package_manifest.internal_dependencies_iter(&package_manifest_by_package_name);
+    let tsconfig_diffs: Vec<Option<TypescriptConfig>> = package_manifest_by_package_name
+        .values()
+        .map(|package_manifest| {
+            let package_directory = package_manifest.directory();
+            let mut tsconfig = TypescriptConfig::from_directory(&opts.root, &package_directory)?;
+            let internal_dependencies =
+                package_manifest.internal_dependencies_iter(&package_manifest_by_package_name);
 
-                let desired_project_references: Vec<TypescriptProjectReference> = {
-                    let mut typescript_project_references: Vec<String> = internal_dependencies
-                        .into_iter()
-                        .map(|dependency| {
-                            diff_paths(dependency.directory(), package_manifest.directory())
+            let desired_project_references: Vec<TypescriptProjectReference> = {
+                let mut typescript_project_references: Vec<String> = internal_dependencies
+                    .into_iter()
+                    .map(|dependency| {
+                        diff_paths(dependency.directory(), package_manifest.directory())
                             .expect(
                                 "Unable to calculate a relative path to dependency from package",
                             )
                             .to_str()
                             .expect("Path not valid UTF-8 encoded")
                             .to_string()
-                        })
-                        .collect::<Vec<_>>();
-                    typescript_project_references.sort_unstable();
-
-                    typescript_project_references
-                        .into_iter()
-                        .map(|path| TypescriptProjectReference { path })
-                        .collect()
-                };
-
-                // Compare the current references against the desired references
-                let current_project_references = &tsconfig
-                    .contents
-                    .get("references")
-                    .map(|value| {
-                        serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
-                            // FIXME: this is an incorrect error message
-                            .expect("Value starting as JSON should be serializable")
                     })
-                    .unwrap_or_default();
+                    .collect::<Vec<_>>();
+                typescript_project_references.sort_unstable();
 
-                let needs_update = !current_project_references.eq(&desired_project_references);
-                if !needs_update {
-                    return Ok(None);
-                }
+                typescript_project_references
+                    .into_iter()
+                    .map(|path| TypescriptProjectReference { path })
+                    .collect()
+            };
 
-                // Update the current tsconfig with the desired references
-                tsconfig.contents.insert(
-                    String::from("references"),
-                    serde_json::to_value(desired_project_references)?,
-                );
+            // Compare the current references against the desired references
+            let current_project_references = &tsconfig
+                .contents
+                .get("references")
+                .map(|value| {
+                    serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
+                        // FIXME: this is an incorrect error message
+                        .expect("Value starting as JSON should be serializable")
+                })
+                .unwrap_or_default();
 
-                Ok(Some(tsconfig))
-            })
+            let needs_update = !current_project_references.eq(&desired_project_references);
+            if !needs_update {
+                return Ok(None);
+            }
+
+            // Update the current tsconfig with the desired references
+            tsconfig.contents.insert(
+                String::from("references"),
+                serde_json::to_value(desired_project_references)?,
+            );
+
+            Ok(Some(tsconfig))
+        })
         .collect::<Result<Vec<Option<TypescriptConfig>>>>()?;
 
     // take action on the computed diffs
@@ -159,7 +162,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
                 Ok(())
             } else {
                 // DISCUSS: we could parallelize the writes
-                tsconfig.write()
+                Ok(TypescriptConfig::write(&opts.root, tsconfig)?)
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
