@@ -1,3 +1,17 @@
+# [6.0.0](https://github.com/typescript-tools/rust-implementation/compare/v5.0.34...v6.0.0) (2023-04-02)
+
+
+* refactor!: replace anyhow with thiserror ([6ebfdb4](https://github.com/typescript-tools/rust-implementation/commit/6ebfdb49b659a7736725148c96b30069f25c61b9))
+* refactor!: use associated types in ConfigurationFile trait ([f26e2b5](https://github.com/typescript-tools/rust-implementation/commit/f26e2b5126360d464d56b091a76a28f233b19aae))
+
+
+### BREAKING CHANGES
+
+* Library functions no longer expose `anyhow::Result`,
+instead exposing `std::error::Error` via thiserror.
+* The `ConfigurationFile` trait changed the generic type
+into an associated type.
+
 ## [5.0.34](https://github.com/typescript-tools/rust-implementation/compare/v5.0.33...v5.0.34) (2023-03-30)
 
 
