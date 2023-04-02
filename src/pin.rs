@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
-
 use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
 use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::{DependencyGroup, PackageManifest};
 
@@ -13,7 +12,7 @@ struct UnpinnedDependency {
     expected: String,
 }
 
-pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<()> {
+pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<(), Error> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
@@ -94,9 +93,7 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
     }
 
     if opts.check_only && exit_code != 0 {
-        return Err(anyhow!(
-            "Found unexpected dependency versions for internal packages"
-        ));
+        return Err(Error::UnexpectedInternalDependencyVersion);
     }
     Ok(())
 }

@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
 use globwalk::{FileType, GlobWalkerBuilder};
-use indoc::formatdoc;
 use pariter::IteratorExt;
 use serde::Deserialize;
 
 use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
 use crate::io::read_json_from_file;
 use crate::package_manifest::PackageManifest;
 
@@ -35,7 +34,7 @@ pub struct MonorepoManifest {
 fn get_internal_package_manifests(
     monorepo_root: &Path,
     package_globs: &[PackageManifestGlob],
-) -> Result<Vec<PackageManifest>> {
+) -> Result<Vec<PackageManifest>, Error> {
     let mut package_manifests: Vec<String> = package_globs
         .iter()
         .map(|package_manifest_glob| {
@@ -58,7 +57,6 @@ fn get_internal_package_manifests(
         .min_depth(1)
         .build()
         .expect("Unable to create glob")
-        .into_iter()
         // FIXME: do not drop errors silently
         .filter_map(Result::ok)
         .parallel_map_custom(
@@ -82,63 +80,39 @@ impl MonorepoManifest {
     const LERNA_MANIFEST_FILENAME: &'static str = "lerna.json";
     const PACKAGE_MANIFEST_FILENAME: &'static str = "package.json";
 
-    fn from_lerna_manifest(root: &Path) -> Result<MonorepoManifest> {
+    fn from_lerna_manifest(root: &Path) -> Result<MonorepoManifest, Error> {
         let filename = root.join(Self::LERNA_MANIFEST_FILENAME);
-        let lerna_manifest: LernaManifestFile =
-            read_json_from_file(&filename).with_context(|| {
-                formatdoc!(
-                    "
-                    Unexpected contents in {:?}
-
-                    I'm trying to parse the following properties and values out
-                    of this lerna.json file:
-
-                    - packages: string[]
-                    ",
-                    filename
-                )
-            })?;
+        let lerna_manifest: LernaManifestFile = read_json_from_file(&filename)?;
         Ok(MonorepoManifest {
             root: root.to_owned(),
             globs: lerna_manifest.packages,
         })
     }
 
-    fn from_package_manifest(root: &Path) -> Result<MonorepoManifest> {
+    fn from_package_manifest(root: &Path) -> Result<MonorepoManifest, Error> {
         let filename = root.join(Self::PACKAGE_MANIFEST_FILENAME);
-        let package_manifest: PackageManifestFile =
-            read_json_from_file(&filename).with_context(|| {
-                formatdoc!(
-                    "
-                    Unexpected contents in {:?}
-
-                    I'm trying to parse the following properties and values out
-                    of this package.json file:
-
-                    - workspaces: string[]
-                    ",
-                    filename
-                )
-            })?;
+        let package_manifest: PackageManifestFile = read_json_from_file(&filename)?;
         Ok(MonorepoManifest {
             root: root.to_owned(),
             globs: package_manifest.workspaces,
         })
     }
 
-    pub fn from_directory(root: &Path) -> Result<MonorepoManifest> {
+    pub fn from_directory(root: &Path) -> Result<MonorepoManifest, Error> {
         MonorepoManifest::from_lerna_manifest(root)
             .or_else(|_| MonorepoManifest::from_package_manifest(root))
     }
 
-    pub fn package_manifests_by_package_name(&self) -> Result<HashMap<String, PackageManifest>> {
+    pub fn package_manifests_by_package_name(
+        &self,
+    ) -> Result<HashMap<String, PackageManifest>, Error> {
         Ok(get_internal_package_manifests(&self.root, &self.globs)?
             .into_iter()
             .map(|manifest| (manifest.contents.name.to_owned(), manifest))
             .collect())
     }
 
-    pub fn internal_package_manifests(&self) -> Result<Vec<PackageManifest>> {
+    pub fn internal_package_manifests(&self) -> Result<Vec<PackageManifest>, Error> {
         get_internal_package_manifests(&self.root, &self.globs)
     }
 }

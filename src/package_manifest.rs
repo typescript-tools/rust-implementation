@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
-
-use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
 
 use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
 use crate::io::read_json_from_file;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -45,31 +43,9 @@ impl ConfigurationFile for PackageManifest {
 
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self> {
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, Error> {
         let filename = monorepo_root.join(directory).join(Self::FILENAME);
-        let manifest_contents: PackageManifestFile =
-            read_json_from_file(&filename).with_context(|| {
-                formatdoc!(
-                    "
-                    Unexpected contents in {:?}
-
-                    I'm trying to parse the following properties and values out
-                    of this package.json file:
-
-                    - name: string
-                    - version: string
-
-                    and if any of the following values are present, I expect
-                    them to be a JSON object with string keys and string values:
-
-                    - dependencies
-                    - devDependencies
-                    - optionalDependencies
-                    - peerDependencies
-                    ",
-                    filename
-                )
-            })?;
+        let manifest_contents: PackageManifestFile = read_json_from_file(&filename)?;
         Ok(PackageManifest {
             directory: directory.to_owned(),
             contents: manifest_contents,

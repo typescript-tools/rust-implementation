@@ -2,13 +2,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::Result;
-
 use askama::Template;
-
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
 use crate::monorepo_manifest::MonorepoManifest;
 use crate::package_manifest::PackageManifest;
 
@@ -27,7 +25,7 @@ struct MakefileTemplate<'a> {
     internal_npm_dependencies_exclusive: &'a Vec<&'a str>,
 }
 
-pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<()> {
+pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Error> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
     let package_manifest = PackageManifest::from_directory(&opts.root, &opts.package_directory)?;
 

@@ -4,8 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
 use serde::Serialize;
+
+use crate::error::Error;
 
 // REFACTOR: most of this impl is the same across all types
 /// Configuration file for some component of the monorepo.
@@ -17,7 +18,7 @@ pub trait ConfigurationFile: Sized {
 
     /// Create an instance of this configuration file by reading
     /// the specified file from this directory on disk.
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self>;
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, Error>;
 
     /// Relative path to directory containing this configuration file,
     /// from monorepo root.
@@ -31,11 +32,26 @@ pub trait ConfigurationFile: Sized {
     fn write(
         monorepo_root: &Path,
         configuration_file: impl ConfigurationFile,
-    ) -> std::io::Result<()> {
-        let file = File::create(monorepo_root.join(configuration_file.path()))?;
+    ) -> Result<(), Error> {
+        let filename = monorepo_root.join(configuration_file.path());
+        let file = File::create(filename.clone()).map_err(|source| Error::WriteFile {
+            filename: filename.clone(),
+            source,
+        })?;
         let mut writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, configuration_file.contents())?;
-        writer.write_all(b"\n")?;
-        writer.flush()
+        serde_json::to_writer_pretty(&mut writer, configuration_file.contents()).map_err(
+            |source| Error::SerializeJSON {
+                filename: filename.clone(),
+                source,
+            },
+        )?;
+        writer
+            .write_all(b"\n")
+            .and_then(|_| writer.flush())
+            .map_err(|source| Error::WriteFile {
+                filename: filename.clone(),
+                source,
+            })?;
+        Ok(())
     }
 }

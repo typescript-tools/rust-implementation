@@ -1,20 +1,18 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
 
-use anyhow::Result;
-
+use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
+use crate::monorepo_manifest::MonorepoManifest;
 use crate::opts;
 
-use crate::configuration_file::ConfigurationFile;
-use crate::monorepo_manifest::MonorepoManifest;
-
-pub fn handle_subcommand(opts: crate::opts::Query) -> Result<()> {
+pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), Error> {
     match opts.subcommand {
         opts::ClapQuerySubCommand::InternalDependencies(args) => query_internal_dependencies(&args),
     }
 }
 
-fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<()> {
+fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<(), Error> {
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
@@ -59,6 +57,5 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
     let json_string =
         serde_json::to_string_pretty(&json_value).expect("JSON value should be serializable");
 
-    write!(io::stdout(), "{}", json_string)?;
-    Ok(())
+    writeln!(io::stdout(), "{}", json_string).map_err(Error::BufferWrite)
 }

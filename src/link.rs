@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
-
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
+use crate::error::Error;
 use crate::monorepo_manifest::MonorepoManifest;
 use crate::opts;
 use crate::package_manifest::PackageManifest;
@@ -47,7 +46,10 @@ fn create_project_references(mut children: Vec<String>) -> Vec<TypescriptProject
 
 // Create a tsconfig.json file in each parent directory to an internal package.
 // This permits us to compile the monorepo from the top down.
-fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
+fn link_children_packages(
+    opts: &opts::Link,
+    lerna_manifest: &MonorepoManifest,
+) -> Result<bool, Error> {
     let mut is_exit_success = true;
 
     lerna_manifest
@@ -56,7 +58,7 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
         .fold(HashMap::new(), key_children_by_parent)
         .into_iter()
         // DISCUSS: trying all of this in parallel
-        .try_for_each(|(directory, children)| -> Result<()> {
+        .try_for_each(|(directory, children)| -> Result<(), Error> {
             let desired_project_references = create_project_references(children);
             let mut tsconfig =
                 TypescriptParentProjectReference::from_directory(&opts.root, &directory)?;
@@ -67,7 +69,11 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
             }
             if opts.check_only {
                 is_exit_success = false;
-                let serialized = serde_json::to_string_pretty(&desired_project_references)?;
+                let serialized = serde_json::to_string_pretty(&desired_project_references)
+                    .map_err(|source| Error::SerializeJSON {
+                        filename: tsconfig.path(),
+                        source,
+                    })?;
                 println!(
                     "File has out-of-date project references: {:?}, expecting:",
                     tsconfig.path()
@@ -85,7 +91,10 @@ fn link_children_packages(opts: &opts::Link, lerna_manifest: &MonorepoManifest) 
     Ok(is_exit_success)
 }
 
-fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifest) -> Result<bool> {
+fn link_package_dependencies(
+    opts: &opts::Link,
+    lerna_manifest: &MonorepoManifest,
+) -> Result<bool, Error> {
     // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
@@ -137,12 +146,12 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
             // Update the current tsconfig with the desired references
             tsconfig.contents.insert(
                 String::from("references"),
-                serde_json::to_value(desired_project_references)?,
+                serde_json::to_value(desired_project_references).map_err(Error::ToJSON)?,
             );
 
             Ok(Some(tsconfig))
         })
-        .collect::<Result<Vec<Option<TypescriptConfig>>>>()?;
+        .collect::<Result<Vec<Option<TypescriptConfig>>, Error>>()?;
 
     // take action on the computed diffs
     let mut is_exit_success = true;
@@ -150,10 +159,16 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
     tsconfig_diffs
         .into_iter()
         .flatten()
-        .map(|tsconfig| -> Result<()> {
+        .map(|tsconfig| -> Result<(), Error> {
             if opts.check_only {
                 is_exit_success = false;
-                let serialized = serde_json::to_string_pretty(&tsconfig.contents)?;
+                let serialized =
+                    serde_json::to_string_pretty(&tsconfig.contents).map_err(|source| {
+                        Error::SerializeJSON {
+                            filename: tsconfig.path(),
+                            source,
+                        }
+                    })?;
                 println!(
                     "File has out-of-date project references: {:?}, expecting:",
                     tsconfig.path()
@@ -170,7 +185,7 @@ fn link_package_dependencies(opts: &opts::Link, lerna_manifest: &MonorepoManifes
     Ok(is_exit_success)
 }
 
-pub fn link_typescript_project_references(opts: opts::Link) -> Result<()> {
+pub fn link_typescript_project_references(opts: opts::Link) -> Result<(), Error> {
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
@@ -181,7 +196,7 @@ pub fn link_typescript_project_references(opts: opts::Link) -> Result<()> {
         .expect("Unable to link internal package dependencies");
 
     if opts.check_only && !(is_children_link_success && is_dependencies_link_success) {
-        bail!("Found out-of-date project references")
+        return Err(Error::ProjectReferencesOutOfDate);
     }
 
     // TODO(7): create `tsconfig.settings.json` files
