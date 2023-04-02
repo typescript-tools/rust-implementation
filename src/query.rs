@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{self, Write};
 
 use anyhow::Result;
 
@@ -56,6 +57,6 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
     let json_string =
         serde_json::to_string_pretty(&json_value).expect("JSON value should be serializable");
 
-    print!("{}", json_string);
+    write!(io::stdout(), "{}", json_string)?;
     Ok(())
 }
