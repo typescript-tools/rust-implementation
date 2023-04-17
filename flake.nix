@@ -95,6 +95,8 @@
           nativeBuildInputs = [
             pkgs.cargo
             pkgs.nodejs
+            pkgs.rustc
+            pkgs.rust-analyzer
           ];
 
           inherit (self.checks.${system}.pre-commit-check) shellHook;
