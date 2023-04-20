@@ -1,3 +1,11 @@
+## [6.0.5](https://github.com/typescript-tools/rust-implementation/compare/v6.0.4...v6.0.5) (2023-04-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency axios to v1.3.6 ([7738b34](https://github.com/typescript-tools/rust-implementation/commit/7738b3433c60542fc5bfbe7b25a959dc7f2f4c2a))
+* **deps:** update rust crate clap to v4.2.3 ([80a0ccf](https://github.com/typescript-tools/rust-implementation/commit/80a0ccfd6df3980f5ca26d53225d0e40c38bf3f0))
+
 ## [6.0.4](https://github.com/typescript-tools/rust-implementation/compare/v6.0.3...v6.0.4) (2023-04-14)
 
 
