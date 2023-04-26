@@ -1193,6 +1193,7 @@ dependencies = [
 name = "typescript_tools"
 version = "0.0.0-semantically-released"
 dependencies = [
+ "anyhow",
  "askama",
  "clap 4.2.5",
  "globwalk",

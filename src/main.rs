@@ -4,7 +4,7 @@ use clap::Parser;
 
 use typescript_tools::{link, lint, make_depend, opts, pin, query};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), anyhow::Error> {
     let opts = opts::Opts::parse();
 
     Ok(match opts.subcommand {
