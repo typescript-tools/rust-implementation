@@ -1,19 +1,88 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 
-use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::monorepo_manifest::MonorepoManifest;
+use crate::configuration_file::{ConfigurationFile, WriteError};
+use crate::io::FromFileError;
+use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::package_manifest::{DependencyGroup, PackageManifest};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct UnpinnedDependency {
     name: String,
     actual: String,
     expected: String,
 }
 
-pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<(), Error> {
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct PinError {
+    pub kind: PinErrorKind,
+}
+
+impl Display for PinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            // REFACTOR: move the specific failures into this variant and the
+            // display logic into this function
+            PinErrorKind::UnexpectedInternalDependencyVersion => {
+                write!(f, "unexpected internal dependency version")
+            }
+            _ => write!(f, "error pinning dependency versions"),
+        }
+    }
+}
+
+impl std::error::Error for PinError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            PinErrorKind::FromFile(err) => Some(err),
+            PinErrorKind::EnumeratePackageManifests(err) => Some(err),
+            PinErrorKind::Write(err) => Some(err),
+            PinErrorKind::UnexpectedInternalDependencyVersion => None,
+        }
+    }
+}
+
+impl From<FromFileError> for PinError {
+    fn from(err: FromFileError) -> Self {
+        Self {
+            kind: PinErrorKind::FromFile(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsError> for PinError {
+    fn from(err: EnumeratePackageManifestsError) -> Self {
+        Self {
+            kind: PinErrorKind::EnumeratePackageManifests(err),
+        }
+    }
+}
+
+impl From<WriteError> for PinError {
+    fn from(err: WriteError) -> Self {
+        Self {
+            kind: PinErrorKind::Write(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum PinErrorKind {
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    EnumeratePackageManifests(EnumeratePackageManifestsError),
+    #[non_exhaustive]
+    Write(WriteError),
+    // FIXME: this isn't an error
+    #[non_exhaustive]
+    UnexpectedInternalDependencyVersion,
+}
+
+pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<(), PinError> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
+
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
     let package_version_by_package_name: HashMap<String, String> = package_manifest_by_package_name
@@ -93,7 +162,9 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
     }
 
     if opts.check_only && exit_code != 0 {
-        return Err(Error::UnexpectedInternalDependencyVersion);
+        return Err(PinError {
+            kind: PinErrorKind::UnexpectedInternalDependencyVersion,
+        });
     }
     Ok(())
 }

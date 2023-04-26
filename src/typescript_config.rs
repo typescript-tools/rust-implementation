@@ -3,8 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::io::read_json_from_file;
+use crate::io::{read_json_from_file, FromFileError};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct TypescriptProjectReference {
@@ -31,7 +30,7 @@ impl ConfigurationFile for TypescriptParentProjectReference {
 
     const FILENAME: &'static str = "tsconfig.json";
 
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, Error> {
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, FromFileError> {
         let filename = monorepo_root.join(directory).join(Self::FILENAME);
         let manifest_contents: TypescriptParentProjectReferenceFile =
             read_json_from_file(&filename)?;
@@ -64,7 +63,10 @@ impl ConfigurationFile for TypescriptConfig {
 
     const FILENAME: &'static str = "tsconfig.json";
 
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, Error> {
+    fn from_directory(
+        monorepo_root: &Path,
+        directory: &Path,
+    ) -> Result<TypescriptConfig, FromFileError> {
         let filename = monorepo_root.join(directory).join(Self::FILENAME);
         Ok(TypescriptConfig {
             directory: directory.to_owned(),

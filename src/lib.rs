@@ -4,7 +4,6 @@ mod io;
 mod typescript_config;
 
 pub mod configuration_file;
-pub mod error;
 pub mod link;
 pub mod lint;
 pub mod make_depend;

@@ -4,8 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::io::read_json_from_file;
+use crate::io::{read_json_from_file, FromFileError};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -43,7 +42,7 @@ impl ConfigurationFile for PackageManifest {
 
     const FILENAME: &'static str = "package.json";
 
-    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, Error> {
+    fn from_directory(monorepo_root: &Path, directory: &Path) -> Result<Self, FromFileError> {
         let filename = monorepo_root.join(directory).join(Self::FILENAME);
         let manifest_contents: PackageManifestFile = read_json_from_file(&filename)?;
         Ok(PackageManifest {

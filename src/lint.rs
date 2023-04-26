@@ -1,11 +1,80 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::monorepo_manifest::MonorepoManifest;
+use crate::io::FromFileError;
+use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::opts;
 
-pub fn handle_subcommand(opts: opts::Lint) -> Result<(), Error> {
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct LintError {
+    pub kind: LintErrorKind,
+}
+
+impl Display for LintError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            LintErrorKind::UnknownDependency(dependency) => write!(
+                f,
+                "expected dependency `{}` to be used in at least one package",
+                dependency
+            ),
+            // REFACTOR: move the specific failures into this variant and the
+            // display logic into this function
+            LintErrorKind::UnexpectedInternalDependencyVersion => write!(f, "lint errors detected"),
+            _ => write!(f, "error linting dependency versions"),
+        }
+    }
+}
+
+impl std::error::Error for LintError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            LintErrorKind::EnumeratePackageManifests(err) => Some(err),
+            LintErrorKind::FromFile(err) => Some(err),
+            LintErrorKind::UnknownDependency(_) => None,
+            LintErrorKind::UnexpectedInternalDependencyVersion => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum LintErrorKind {
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    EnumeratePackageManifests(EnumeratePackageManifestsError),
+    #[non_exhaustive]
+    UnknownDependency(String),
+    // FIXME: this isn't an error
+    #[non_exhaustive]
+    UnexpectedInternalDependencyVersion,
+}
+
+impl From<FromFileError> for LintError {
+    fn from(err: FromFileError) -> Self {
+        Self {
+            kind: LintErrorKind::FromFile(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsError> for LintError {
+    fn from(err: EnumeratePackageManifestsError) -> Self {
+        Self {
+            kind: LintErrorKind::EnumeratePackageManifests(err),
+        }
+    }
+}
+
+impl From<LintErrorKind> for LintError {
+    fn from(kind: LintErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+pub fn handle_subcommand(opts: opts::Lint) -> Result<(), LintError> {
     match opts.subcommand {
         opts::ClapLintSubCommand::DependencyVersion(args) => lint_dependency_version(&args),
     }
@@ -25,7 +94,7 @@ fn most_common_dependency_version(
         .map(|(k, _v)| k.to_owned())
 }
 
-fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), Error> {
+fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), LintError> {
     let opts::DependencyVersion { root, dependencies } = opts;
 
     let lerna_manifest = MonorepoManifest::from_directory(root)?;
@@ -64,7 +133,7 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), Error> 
 
         let expected_version_number =
             most_common_dependency_version(&package_manifests_by_dependency_version)
-                .expect("Expected dependency to be used in at least one package");
+                .ok_or(LintErrorKind::UnknownDependency(dependency.to_owned()))?;
 
         println!("Linting versions of dependency \"{}\"", &dependency);
 
@@ -87,7 +156,9 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), Error> 
     }
 
     if !is_exit_success {
-        return Err(Error::UnexpectedInternalDependencyVersion);
+        return Err(LintError {
+            kind: LintErrorKind::UnexpectedInternalDependencyVersion,
+        });
     }
     Ok(())
 }

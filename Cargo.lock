@@ -1201,7 +1201,6 @@ dependencies = [
  "semantic-release-rust",
  "serde",
  "serde_json",
- "thiserror",
 ]
 
 [[package]]

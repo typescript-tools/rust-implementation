@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::fs;
 use std::path::PathBuf;
 
@@ -6,8 +7,8 @@ use askama::Template;
 use pathdiff::diff_paths;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::monorepo_manifest::MonorepoManifest;
+use crate::io::FromFileError;
+use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::package_manifest::PackageManifest;
 
 #[derive(Template)]
@@ -25,7 +26,56 @@ struct MakefileTemplate<'a> {
     internal_npm_dependencies_exclusive: &'a Vec<&'a str>,
 }
 
-pub fn make_dependency_makefile(opts: crate::opts::MakeDepend) -> Result<(), Error> {
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct MakeDependencyMakefileError {
+    pub kind: MakeDependencyMakefileErrorKind,
+}
+
+impl Display for MakeDependencyMakefileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            _ => write!(f, "error creating package makefile"),
+        }
+    }
+}
+
+impl std::error::Error for MakeDependencyMakefileError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            MakeDependencyMakefileErrorKind::FromFile(err) => Some(err),
+            MakeDependencyMakefileErrorKind::EnumeratePackageManifests(err) => Some(err),
+        }
+    }
+}
+
+impl From<FromFileError> for MakeDependencyMakefileError {
+    fn from(err: FromFileError) -> Self {
+        Self {
+            kind: MakeDependencyMakefileErrorKind::FromFile(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsError> for MakeDependencyMakefileError {
+    fn from(err: EnumeratePackageManifestsError) -> Self {
+        Self {
+            kind: MakeDependencyMakefileErrorKind::EnumeratePackageManifests(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum MakeDependencyMakefileErrorKind {
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    EnumeratePackageManifests(EnumeratePackageManifestsError),
+}
+
+pub fn make_dependency_makefile(
+    opts: crate::opts::MakeDepend,
+) -> Result<(), MakeDependencyMakefileError> {
     let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
     let package_manifest = PackageManifest::from_directory(&opts.root, &opts.package_directory)?;
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use globwalk::{FileType, GlobWalkerBuilder};
@@ -6,8 +7,7 @@ use pariter::IteratorExt;
 use serde::Deserialize;
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::io::read_json_from_file;
+use crate::io::{read_json_from_file, FromFileError};
 use crate::package_manifest::PackageManifest;
 
 #[derive(Debug, Deserialize)]
@@ -31,20 +31,73 @@ pub struct MonorepoManifest {
     globs: Vec<PackageManifestGlob>,
 }
 
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct EnumeratePackageManifestsError {
+    pub kind: EnumeratePackageManifestsErrorKind,
+}
+
+impl Display for EnumeratePackageManifestsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to enumerate monorepo packages")
+    }
+}
+
+impl std::error::Error for EnumeratePackageManifestsError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+#[derive(Debug)]
+pub enum EnumeratePackageManifestsErrorKind {
+    #[non_exhaustive]
+    GlobNotValidUtf8(PathBuf),
+    #[non_exhaustive]
+    GlobWalkBuilderError(globwalk::GlobError),
+    #[non_exhaustive]
+    FromFile(FromFileError),
+}
+
+impl Display for EnumeratePackageManifestsErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(glob) => {
+                write!(f, "glob cannot be expressed in UTF-8: {:?}", glob)
+            }
+            EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(_) => {
+                write!(f, "unable to build glob walker")
+            }
+            EnumeratePackageManifestsErrorKind::FromFile(_) => write!(f, "error reading file"),
+        }
+    }
+}
+
+impl std::error::Error for EnumeratePackageManifestsErrorKind {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self {
+            EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(_) => None,
+            EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err) => Some(err),
+            EnumeratePackageManifestsErrorKind::FromFile(err) => err.source(),
+        }
+    }
+}
+
 fn get_internal_package_manifests(
     monorepo_root: &Path,
     package_globs: &[PackageManifestGlob],
-) -> Result<Vec<PackageManifest>, Error> {
+) -> Result<Vec<PackageManifest>, EnumeratePackageManifestsError> {
     let mut package_manifests: Vec<String> = package_globs
         .iter()
         .map(|package_manifest_glob| {
-            Path::new(&package_manifest_glob.0)
-                .join("package.json")
-                .to_str()
-                .expect("Path not valid UTF-8")
-                .to_string()
+            let glob = Path::new(&package_manifest_glob.0).join("package.json");
+            glob.to_str()
+                .map(ToOwned::to_owned)
+                .ok_or_else(|| EnumeratePackageManifestsError {
+                    kind: EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(glob),
+                })
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     // ignore paths to speed up file-system walk
     package_manifests.push(String::from("!node_modules/"));
@@ -56,7 +109,9 @@ fn get_internal_package_manifests(
         .file_type(FileType::FILE)
         .min_depth(1)
         .build()
-        .expect("Unable to create glob")
+        .map_err(|err| EnumeratePackageManifestsError {
+            kind: EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err),
+        })?
         // FIXME: do not drop errors silently
         .filter_map(Result::ok)
         .parallel_map_custom(
@@ -71,6 +126,9 @@ fn get_internal_package_manifests(
                         .strip_prefix(&monorepo_root)
                         .expect("Unexpected package in monorepo root"),
                 )
+                .map_err(|err| EnumeratePackageManifestsError {
+                    kind: EnumeratePackageManifestsErrorKind::FromFile(err),
+                })
             },
         )
         .collect()
@@ -80,7 +138,7 @@ impl MonorepoManifest {
     const LERNA_MANIFEST_FILENAME: &'static str = "lerna.json";
     const PACKAGE_MANIFEST_FILENAME: &'static str = "package.json";
 
-    fn from_lerna_manifest(root: &Path) -> Result<MonorepoManifest, Error> {
+    fn from_lerna_manifest(root: &Path) -> Result<MonorepoManifest, FromFileError> {
         let filename = root.join(Self::LERNA_MANIFEST_FILENAME);
         let lerna_manifest: LernaManifestFile = read_json_from_file(&filename)?;
         Ok(MonorepoManifest {
@@ -89,7 +147,7 @@ impl MonorepoManifest {
         })
     }
 
-    fn from_package_manifest(root: &Path) -> Result<MonorepoManifest, Error> {
+    fn from_package_manifest(root: &Path) -> Result<MonorepoManifest, FromFileError> {
         let filename = root.join(Self::PACKAGE_MANIFEST_FILENAME);
         let package_manifest: PackageManifestFile = read_json_from_file(&filename)?;
         Ok(MonorepoManifest {
@@ -98,21 +156,23 @@ impl MonorepoManifest {
         })
     }
 
-    pub fn from_directory(root: &Path) -> Result<MonorepoManifest, Error> {
+    pub fn from_directory(root: &Path) -> Result<MonorepoManifest, FromFileError> {
         MonorepoManifest::from_lerna_manifest(root)
             .or_else(|_| MonorepoManifest::from_package_manifest(root))
     }
 
     pub fn package_manifests_by_package_name(
         &self,
-    ) -> Result<HashMap<String, PackageManifest>, Error> {
+    ) -> Result<HashMap<String, PackageManifest>, EnumeratePackageManifestsError> {
         Ok(get_internal_package_manifests(&self.root, &self.globs)?
             .into_iter()
             .map(|manifest| (manifest.contents.name.to_owned(), manifest))
             .collect())
     }
 
-    pub fn internal_package_manifests(&self) -> Result<Vec<PackageManifest>, Error> {
+    pub fn internal_package_manifests(
+        &self,
+    ) -> Result<Vec<PackageManifest>, EnumeratePackageManifestsError> {
         get_internal_package_manifests(&self.root, &self.globs)
     }
 }

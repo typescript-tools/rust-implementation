@@ -1,18 +1,77 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::io::{self, Write};
 
 use crate::configuration_file::ConfigurationFile;
-use crate::error::Error;
-use crate::monorepo_manifest::MonorepoManifest;
+use crate::io::FromFileError;
+use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::opts;
 
-pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), Error> {
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct QueryError {
+    pub kind: QueryErrorKind,
+}
+
+impl Display for QueryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            _ => write!(f, "error querying monorepo dependencies"),
+        }
+    }
+}
+
+impl std::error::Error for QueryError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            QueryErrorKind::FromFile(err) => Some(err),
+            QueryErrorKind::EnumeratePackageManifests(err) => Some(err),
+            QueryErrorKind::Write(err) => Some(err),
+        }
+    }
+}
+
+impl From<FromFileError> for QueryError {
+    fn from(err: FromFileError) -> Self {
+        Self {
+            kind: QueryErrorKind::FromFile(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsError> for QueryError {
+    fn from(err: EnumeratePackageManifestsError) -> Self {
+        Self {
+            kind: QueryErrorKind::EnumeratePackageManifests(err),
+        }
+    }
+}
+
+impl From<io::Error> for QueryError {
+    fn from(err: io::Error) -> Self {
+        Self {
+            kind: QueryErrorKind::Write(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum QueryErrorKind {
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    EnumeratePackageManifests(EnumeratePackageManifestsError),
+    #[non_exhaustive]
+    Write(io::Error),
+}
+
+pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), QueryError> {
     match opts.subcommand {
         opts::ClapQuerySubCommand::InternalDependencies(args) => query_internal_dependencies(&args),
     }
 }
 
-fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<(), Error> {
+fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<(), QueryError> {
     let lerna_manifest =
         MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
 
@@ -57,5 +116,6 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
     let json_string =
         serde_json::to_string_pretty(&json_value).expect("JSON value should be serializable");
 
-    writeln!(io::stdout(), "{}", json_string).map_err(Error::BufferWrite)
+    writeln!(io::stdout(), "{}", json_string)?;
+    Ok(())
 }
