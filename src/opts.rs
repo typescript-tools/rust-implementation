@@ -73,7 +73,7 @@ pub enum ClapQuerySubCommand {
     InternalDependencies(InternalDependencies),
 }
 
-#[derive(ValueEnum, Clone)]
+#[derive(ValueEnum, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum InternalDependenciesFormat {
     Name,
     Path,
