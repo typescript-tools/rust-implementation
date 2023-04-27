@@ -13,12 +13,16 @@ pub struct Opts {
 pub enum ClapSubCommand {
     #[clap(about = "Pin internal dependencies to locally-declared package versions")]
     Pin(Pin),
+
     #[clap(about = "Configure TypeScript Project References")]
     Link(Link),
+
     #[clap(about = "Create GNU Makefile containing package dependency information")]
     MakeDepend(MakeDepend),
+
     #[clap(about = "Query properties of the current monorepo state")]
     Query(Query),
+
     #[clap(about = "Lint internal packages for consistent use of external dependency versions")]
     Lint(Lint),
 }
@@ -28,6 +32,7 @@ pub struct Link {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
+
     /// Exit with code 1 when project references are not properly configured
     #[clap(long = "check")]
     pub check_only: bool,
@@ -38,6 +43,7 @@ pub struct Pin {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
+
     /// Exit with code 1 when internal dependencies are not properly pinned
     #[clap(long = "check")]
     pub check_only: bool,
@@ -48,12 +54,15 @@ pub struct MakeDepend {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
+
     /// Directory to package for which to calculate dependencies
     #[clap(long)]
     pub package_directory: PathBuf,
+
     /// Output file, relative to the package directory
     #[clap(long)]
     pub output_file: PathBuf,
+
     /// Include GNU make target for creating package archive with npm pack
     #[clap(long)]
     pub create_pack_target: bool,
@@ -84,6 +93,7 @@ pub struct InternalDependencies {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
+
     /// Format in which to describe internal dependencies (defaults to name)
     #[clap(long = "format", value_enum, default_value = "name")]
     pub format: InternalDependenciesFormat,
@@ -106,6 +116,7 @@ pub struct DependencyVersion {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
+
     /// External dependency to lint for consistency of version used
     #[clap(short, long = "dependency")]
     pub dependencies: Vec<String>,
