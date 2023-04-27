@@ -48,7 +48,8 @@ serde_json = { version = "=1.0.96", features = ["preserve_order"] }
 [dev-dependencies]
 assert-json-diff = "2.0.2"
 semantic-release-rust = "1.0.0-alpha.8"
-testresult = "0.3.0"
+tempdir = "0.3.7"
+utilities = { path = "utilities" }
 
 [profile.release]
 lto = true
