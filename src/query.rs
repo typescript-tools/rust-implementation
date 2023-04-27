@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::FromFileError;
@@ -17,6 +17,9 @@ pub struct QueryError {
 impl Display for QueryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
+            QueryErrorKind::PathInvalidUtf8(path) => {
+                write!(f, "path contains invalid UTF-8: {:?}", path)
+            }
             _ => write!(f, "error querying monorepo dependencies"),
         }
     }
@@ -28,6 +31,7 @@ impl std::error::Error for QueryError {
             QueryErrorKind::FromFile(err) => Some(err),
             QueryErrorKind::EnumeratePackageManifests(err) => Some(err),
             QueryErrorKind::Write(err) => Some(err),
+            QueryErrorKind::PathInvalidUtf8(_) => None,
         }
     }
 }
@@ -64,6 +68,8 @@ pub enum QueryErrorKind {
     EnumeratePackageManifests(EnumeratePackageManifestsError),
     #[non_exhaustive]
     Write(io::Error),
+    #[non_exhaustive]
+    PathInvalidUtf8(PathBuf),
 }
 
 pub fn query_internal_dependencies<P>(
@@ -73,45 +79,55 @@ pub fn query_internal_dependencies<P>(
 where
     P: AsRef<Path>,
 {
-    let root = root.as_ref();
-    let lerna_manifest =
-        MonorepoManifest::from_directory(root).expect("Unable to read monorepo manifest");
+    fn inner(
+        root: &Path,
+        format: opts::InternalDependenciesFormat,
+    ) -> Result<HashMap<String, Vec<String>>, QueryError> {
+        let lerna_manifest = MonorepoManifest::from_directory(root)?;
 
-    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
+        let package_manifest_by_package_name =
+            lerna_manifest.package_manifests_by_package_name()?;
 
-    let internal_dependencies_by_package: HashMap<String, Vec<String>> =
-        package_manifest_by_package_name.iter().fold(
-            HashMap::new(),
-            |mut map, (package_name, package_manifest)| {
-                let key = match format {
-                    crate::opts::InternalDependenciesFormat::Name => package_name.to_owned(),
-                    crate::opts::InternalDependenciesFormat::Path => package_manifest
-                        .directory()
-                        .to_str()
-                        .expect("Path not valid UTF-8 encoding")
-                        .to_owned(),
-                };
-                let values: Vec<String> = package_manifest
-                    .transitive_internal_dependency_package_names_exclusive(
-                        &package_manifest_by_package_name,
-                    )
-                    .into_iter()
-                    .map(|dependency| match format {
-                        opts::InternalDependenciesFormat::Name => {
-                            dependency.contents.name.to_owned()
-                        }
-                        opts::InternalDependenciesFormat::Path => dependency
+        let internal_dependencies_by_package: HashMap<String, Vec<String>> =
+        package_manifest_by_package_name
+            .iter()
+            .map(
+                |(package_name, package_manifest)| -> Result<(String, Vec<String>), QueryError> {
+                    let key = match format {
+                        crate::opts::InternalDependenciesFormat::Name => package_name.to_owned(),
+                        crate::opts::InternalDependenciesFormat::Path => package_manifest
                             .directory()
                             .to_str()
-                            .expect("Path not valid UTF-8")
-                            .to_string(),
-                    })
-                    .collect();
+                            .map(ToOwned::to_owned)
+                            .ok_or_else(|| QueryError {
+                                kind: QueryErrorKind::PathInvalidUtf8(root.to_owned()),
+                            })?,
+                    };
+                    let values: Vec<String> = package_manifest
+                        .transitive_internal_dependency_package_names_exclusive(
+                            &package_manifest_by_package_name,
+                        )
+                        .into_iter()
+                        .map(|dependency| match format {
+                            opts::InternalDependenciesFormat::Name => {
+                                Ok(dependency.contents.name.to_owned())
+                            }
+                            opts::InternalDependenciesFormat::Path => dependency
+                                .directory()
+                                .to_str()
+                                .map(ToOwned::to_owned)
+                                .ok_or_else(|| QueryError {
+                                    kind: QueryErrorKind::PathInvalidUtf8(root.to_owned()),
+                                }),
+                        })
+                        .collect::<Result<_, _>>()?;
 
-                map.insert(key, values);
-                map
-            },
-        );
+                    Ok((key, values))
+                },
+            )
+            .collect::<Result<_, _>>()?;
 
-    Ok(internal_dependencies_by_package)
+        Ok(internal_dependencies_by_package)
+    }
+    inner(root.as_ref(), format)
 }
