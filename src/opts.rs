@@ -2,14 +2,14 @@ use std::path::PathBuf;
 
 use clap::{crate_version, ArgAction, Parser, ValueEnum};
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
 pub struct Opts {
     #[clap(subcommand)]
     pub subcommand: ClapSubCommand,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub enum ClapSubCommand {
     #[clap(about = "Pin internal dependencies to locally-declared package versions")]
     Pin(Pin),
@@ -27,7 +27,7 @@ pub enum ClapSubCommand {
     Lint(Lint),
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct Link {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
@@ -38,7 +38,7 @@ pub struct Link {
     pub action: Action,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct Pin {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
@@ -49,7 +49,7 @@ pub struct Pin {
     pub action: Action,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct MakeDepend {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
@@ -68,13 +68,13 @@ pub struct MakeDepend {
     pub create_pack_target: bool,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct Query {
     #[clap(subcommand)]
     pub subcommand: ClapQuerySubCommand,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub enum ClapQuerySubCommand {
     #[clap(
         about = "Print a JSON object mapping a package name to a list of relative paths to its internal dependencies"
@@ -88,7 +88,7 @@ pub enum InternalDependenciesFormat {
     Path,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct InternalDependencies {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]
@@ -99,19 +99,19 @@ pub struct InternalDependencies {
     pub format: InternalDependenciesFormat,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct Lint {
     #[clap(subcommand)]
     pub subcommand: ClapLintSubCommand,
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub enum ClapLintSubCommand {
     #[clap(about = "Lint the used versions of an external dependency for consistency")]
     DependencyVersion(DependencyVersion),
 }
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 pub struct DependencyVersion {
     /// Path to monorepo root
     #[clap(short, long, default_value = ".")]

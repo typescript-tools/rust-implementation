@@ -21,6 +21,7 @@ pub struct PackageManifest {
     pub contents: PackageManifestFile,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum DependencyGroup {
     Dependencies,
     DevDependencies,
