@@ -5,6 +5,7 @@ use std::path::Path;
 use crate::configuration_file::{ConfigurationFile, WriteError};
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
+use crate::opts::Action;
 use crate::package_manifest::{DependencyGroup, PackageManifest};
 
 #[derive(Clone, Debug)]
@@ -81,10 +82,7 @@ pub enum PinErrorKind {
     UnexpectedInternalDependencyVersion,
 }
 
-pub fn pin_version_numbers_in_internal_packages<P>(
-    root: P,
-    check_only: bool,
-) -> Result<(), PinError>
+pub fn pin_version_numbers_in_internal_packages<P>(root: P, action: Action) -> Result<(), PinError>
 where
     P: AsRef<Path>,
 {
@@ -151,7 +149,7 @@ where
         }
 
         if !dependencies_to_update.is_empty() {
-            if check_only {
+            if action == Action::Lint {
                 exit_code = 1;
                 println!(
                     "File contains unexpected dependency versions: {:?}",
@@ -169,7 +167,7 @@ where
         }
     }
 
-    if check_only && exit_code != 0 {
+    if action == Action::Lint && exit_code != 0 {
         return Err(PinError {
             kind: PinErrorKind::UnexpectedInternalDependencyVersion,
         });

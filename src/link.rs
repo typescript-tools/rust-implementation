@@ -7,6 +7,7 @@ use pathdiff::diff_paths;
 use crate::configuration_file::{ConfigurationFile, WriteError};
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
+use crate::opts::Action;
 use crate::package_manifest::PackageManifest;
 use crate::typescript_config::{
     TypescriptConfig, TypescriptParentProjectReference, TypescriptProjectReference,
@@ -113,7 +114,7 @@ fn create_project_references(mut children: Vec<String>) -> Vec<TypescriptProject
 // This permits us to compile the monorepo from the top down.
 fn link_children_packages(
     root: &Path,
-    check_only: bool,
+    action: Action,
     lerna_manifest: &MonorepoManifest,
 ) -> Result<bool, LinkError> {
     let mut is_exit_success = true;
@@ -132,7 +133,7 @@ fn link_children_packages(
             if !needs_update {
                 return Ok(());
             }
-            if check_only {
+            if action == Action::Lint {
                 is_exit_success = false;
                 println!(
                     "File has out-of-date project references: {:?}, expecting:",
@@ -153,7 +154,7 @@ fn link_children_packages(
 
 fn link_package_dependencies(
     root: &Path,
-    check_only: bool,
+    action: Action,
     lerna_manifest: &MonorepoManifest,
 ) -> Result<bool, LinkError> {
     // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
@@ -223,7 +224,7 @@ fn link_package_dependencies(
         .into_iter()
         .flatten()
         .map(|tsconfig| -> Result<(), LinkError> {
-            if check_only {
+            if action == Action::Lint {
                 is_exit_success = false;
                 println!(
                     "File has out-of-date project references: {:?}, expecting:",
@@ -243,7 +244,7 @@ fn link_package_dependencies(
     Ok(is_exit_success)
 }
 
-pub fn link_typescript_project_references<P>(root: P, check_only: bool) -> Result<(), LinkError>
+pub fn link_typescript_project_references<P>(root: P, action: Action) -> Result<(), LinkError>
 where
     P: AsRef<Path>,
 {
@@ -251,13 +252,13 @@ where
     let lerna_manifest =
         MonorepoManifest::from_directory(root).expect("Unable to read monorepo manifest");
 
-    let is_children_link_success = link_children_packages(root, check_only, &lerna_manifest)
+    let is_children_link_success = link_children_packages(root, action, &lerna_manifest)
         .expect("Unable to link children packages");
 
-    let is_dependencies_link_success = link_package_dependencies(root, check_only, &lerna_manifest)
+    let is_dependencies_link_success = link_package_dependencies(root, action, &lerna_manifest)
         .expect("Unable to link internal package dependencies");
 
-    if check_only && !(is_children_link_success && is_dependencies_link_success) {
+    if action == Action::Lint && !(is_children_link_success && is_dependencies_link_success) {
         return Err(LinkError {
             kind: LinkErrorKind::ProjectReferencesOutOfDate,
         });

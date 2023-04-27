@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{crate_version, Parser, ValueEnum};
+use clap::{crate_version, ArgAction, Parser, ValueEnum};
 
 #[derive(Parser)]
 #[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
@@ -33,9 +33,9 @@ pub struct Link {
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
 
-    /// Exit with code 1 when project references are not properly configured
-    #[clap(long = "check")]
-    pub check_only: bool,
+    /// Modify tsconfig.json files as necessary to restore link invariant
+    #[clap(long = "write", action = ArgAction::SetTrue)]
+    pub action: Action,
 }
 
 #[derive(Parser)]
@@ -44,9 +44,9 @@ pub struct Pin {
     #[clap(short, long, default_value = ".")]
     pub root: PathBuf,
 
-    /// Exit with code 1 when internal dependencies are not properly pinned
-    #[clap(long = "check")]
-    pub check_only: bool,
+    /// Modify package.json files as necessary to restore pin invariant
+    #[clap(long = "write", action = ArgAction::SetTrue)]
+    pub action: Action,
 }
 
 #[derive(Parser)]
@@ -82,7 +82,7 @@ pub enum ClapQuerySubCommand {
     InternalDependencies(InternalDependencies),
 }
 
-#[derive(ValueEnum, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(ValueEnum, Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum InternalDependenciesFormat {
     Name,
     Path,
@@ -120,4 +120,20 @@ pub struct DependencyVersion {
     /// External dependency to lint for consistency of version used
     #[clap(short, long = "dependency")]
     pub dependencies: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Action {
+    Modify,
+    Lint,
+}
+
+impl From<&str> for Action {
+    fn from(value: &str) -> Self {
+        match value {
+            "true" => Self::Modify,
+            "false" => Self::Lint,
+            _ => unreachable!(),
+        }
+    }
 }

@@ -11,10 +11,10 @@ fn main() -> Result<(), anyhow::Error> {
 
     Ok(match args.subcommand {
         opts::ClapSubCommand::Link(args) => {
-            link::link_typescript_project_references(args.root, args.check_only)?
+            link::link_typescript_project_references(args.root, args.action)?
         }
         opts::ClapSubCommand::Pin(args) => {
-            pin::pin_version_numbers_in_internal_packages(args.root, args.check_only)?
+            pin::pin_version_numbers_in_internal_packages(args.root, args.action)?
         }
         opts::ClapSubCommand::MakeDepend(args) => make_depend::make_dependency_makefile(args)?,
         opts::ClapSubCommand::Query(args) => match args.subcommand {
