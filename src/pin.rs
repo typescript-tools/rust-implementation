@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::path::Path;
 
 use crate::configuration_file::{ConfigurationFile, WriteError};
 use crate::io::FromFileError;
@@ -80,8 +81,15 @@ pub enum PinErrorKind {
     UnexpectedInternalDependencyVersion,
 }
 
-pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Result<(), PinError> {
-    let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
+pub fn pin_version_numbers_in_internal_packages<P>(
+    root: P,
+    check_only: bool,
+) -> Result<(), PinError>
+where
+    P: AsRef<Path>,
+{
+    let root = root.as_ref();
+    let lerna_manifest = MonorepoManifest::from_directory(root)?;
 
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
@@ -143,7 +151,7 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
         }
 
         if !dependencies_to_update.is_empty() {
-            if opts.check_only {
+            if check_only {
                 exit_code = 1;
                 println!(
                     "File contains unexpected dependency versions: {:?}",
@@ -156,12 +164,12 @@ pub fn pin_version_numbers_in_internal_packages(opts: crate::opts::Pin) -> Resul
                     );
                 }
             } else {
-                PackageManifest::write(&opts.root, package_manifest)?;
+                PackageManifest::write(root, package_manifest)?;
             }
         }
     }
 
-    if opts.check_only && exit_code != 0 {
+    if check_only && exit_code != 0 {
         return Err(PinError {
             kind: PinErrorKind::UnexpectedInternalDependencyVersion,
         });

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::path::Path;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
-use crate::opts;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -74,12 +74,6 @@ impl From<LintErrorKind> for LintError {
     }
 }
 
-pub fn handle_subcommand(opts: opts::Lint) -> Result<(), LintError> {
-    match opts.subcommand {
-        opts::ClapLintSubCommand::DependencyVersion(args) => lint_dependency_version(&args),
-    }
-}
-
 fn most_common_dependency_version(
     package_manifests_by_dependency_version: &HashMap<String, Vec<String>>,
 ) -> Option<String> {
@@ -94,8 +88,12 @@ fn most_common_dependency_version(
         .map(|(k, _v)| k.to_owned())
 }
 
-fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), LintError> {
-    let opts::DependencyVersion { root, dependencies } = opts;
+pub fn lint_dependency_version<P, S>(root: P, dependencies: &[S]) -> Result<(), LintError>
+where
+    P: AsRef<Path>,
+    S: AsRef<str> + std::fmt::Display,
+{
+    let root = root.as_ref();
 
     let lerna_manifest = MonorepoManifest::from_directory(root)?;
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
@@ -133,7 +131,7 @@ fn lint_dependency_version(opts: &opts::DependencyVersion) -> Result<(), LintErr
 
         let expected_version_number =
             most_common_dependency_version(&package_manifests_by_dependency_version)
-                .ok_or(LintErrorKind::UnknownDependency(dependency.to_owned()))?;
+                .ok_or(LintErrorKind::UnknownDependency(dependency.to_string()))?;
 
         println!("Linting versions of dependency \"{}\"", &dependency);
 

@@ -1,0 +1,4 @@
+{
+  "packages/a": [],
+  "packages/b": ["packages/a"]
+}

@@ -28,15 +28,16 @@
 
       craneLib = crane.lib.${system};
 
+      testDataFilter = path: type: builtins.match ".*/test_data.*" path != null;
       templateFilter = path: _type: builtins.baseNameOf path == "makefile";
-      templateOrCargo = path: type:
-        (templateFilter path type) || (craneLib.filterCargoSources path type);
+      templateOrCargoOrTestFiles = path: type:
+        (templateFilter path type) || (craneLib.filterCargoSources path type) || (testDataFilter path type);
 
       # Common derivation arguments used for all builds
       commonArgs = {
         src = pkgs.lib.cleanSourceWith {
           src = ./.;
-          filter = templateOrCargo;
+          filter = templateOrCargoOrTestFiles;
         };
       };
 

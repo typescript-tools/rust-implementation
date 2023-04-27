@@ -1,0 +1,4 @@
+{
+  "@typescript-tools/test-a": [],
+  "@typescript-tools/test-b": ["@typescript-tools/test-a"]
+}

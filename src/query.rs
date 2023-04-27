@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::io::{self, Write};
+use std::io;
+use std::path::Path;
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::FromFileError;
@@ -65,15 +66,16 @@ pub enum QueryErrorKind {
     Write(io::Error),
 }
 
-pub fn handle_subcommand(opts: crate::opts::Query) -> Result<(), QueryError> {
-    match opts.subcommand {
-        opts::ClapQuerySubCommand::InternalDependencies(args) => query_internal_dependencies(&args),
-    }
-}
-
-fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Result<(), QueryError> {
+pub fn query_internal_dependencies<P>(
+    root: P,
+    format: opts::InternalDependenciesFormat,
+) -> Result<HashMap<String, Vec<String>>, QueryError>
+where
+    P: AsRef<Path>,
+{
+    let root = root.as_ref();
     let lerna_manifest =
-        MonorepoManifest::from_directory(&opts.root).expect("Unable to read monorepo manifest");
+        MonorepoManifest::from_directory(root).expect("Unable to read monorepo manifest");
 
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
@@ -81,7 +83,7 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
         package_manifest_by_package_name.iter().fold(
             HashMap::new(),
             |mut map, (package_name, package_manifest)| {
-                let key = match opts.format {
+                let key = match format {
                     crate::opts::InternalDependenciesFormat::Name => package_name.to_owned(),
                     crate::opts::InternalDependenciesFormat::Path => package_manifest
                         .directory()
@@ -94,7 +96,7 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
                         &package_manifest_by_package_name,
                     )
                     .into_iter()
-                    .map(|dependency| match opts.format {
+                    .map(|dependency| match format {
                         opts::InternalDependenciesFormat::Name => {
                             dependency.contents.name.to_owned()
                         }
@@ -111,11 +113,5 @@ fn query_internal_dependencies(opts: &crate::opts::InternalDependencies) -> Resu
             },
         );
 
-    let json_value = serde_json::to_value(internal_dependencies_by_package)
-        .expect("Unable to serialize internal dependency map");
-    let json_string =
-        serde_json::to_string_pretty(&json_value).expect("JSON value should be serializable");
-
-    writeln!(io::stdout(), "{}", json_string)?;
-    Ok(())
+    Ok(internal_dependencies_by_package)
 }

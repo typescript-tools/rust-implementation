@@ -1,0 +1,8 @@
+{
+  "name": "@typescript-tools/test-b",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "external": "2.0.0"
+  }
+}
