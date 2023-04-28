@@ -95,6 +95,7 @@
         default = nixpkgs.legacyPackages.${system}.mkShell {
           nativeBuildInputs = [
             pkgs.cargo
+            pkgs.clippy
             pkgs.nodejs
             pkgs.rustc
             pkgs.rust-analyzer
