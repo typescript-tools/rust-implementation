@@ -5,15 +5,10 @@ use std::path::Path;
 use crate::configuration_file::{ConfigurationFile, WriteError};
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
-use crate::opts::Action;
 use crate::package_manifest::{DependencyGroup, PackageManifest};
-
-#[derive(Clone, Debug)]
-struct UnpinnedDependency {
-    name: String,
-    actual: String,
-    expected: String,
-}
+use crate::unpinned_dependencies::{
+    UnpinnedDependency, UnpinnedMonorepoDependencies, UnpinnedPackageDependencies,
+};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -24,10 +19,11 @@ pub struct PinError {
 impl Display for PinError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.kind {
-            // REFACTOR: move the specific failures into this variant and the
-            // display logic into this function
-            PinErrorKind::UnexpectedInternalDependencyVersion => {
-                write!(f, "unexpected internal dependency version")
+            PinErrorKind::NonStringVersionNumber {
+                package_name,
+                dependency_name,
+            } => {
+                write!(f, "unable to parse `{}` package.json: encountered non-string version for dependency `{}`", package_name, dependency_name)
             }
             _ => write!(f, "error pinning dependency versions"),
         }
@@ -40,7 +36,10 @@ impl std::error::Error for PinError {
             PinErrorKind::FromFile(err) => Some(err),
             PinErrorKind::EnumeratePackageManifests(err) => Some(err),
             PinErrorKind::Write(err) => Some(err),
-            PinErrorKind::UnexpectedInternalDependencyVersion => None,
+            PinErrorKind::NonStringVersionNumber {
+                package_name: _,
+                dependency_name: _,
+            } => None,
         }
     }
 }
@@ -69,6 +68,12 @@ impl From<WriteError> for PinError {
     }
 }
 
+impl From<PinErrorKind> for PinError {
+    fn from(kind: PinErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
 #[derive(Debug)]
 pub enum PinErrorKind {
     #[non_exhaustive]
@@ -77,12 +82,27 @@ pub enum PinErrorKind {
     EnumeratePackageManifests(EnumeratePackageManifestsError),
     #[non_exhaustive]
     Write(WriteError),
-    // FIXME: this isn't an error
     #[non_exhaustive]
-    UnexpectedInternalDependencyVersion,
+    NonStringVersionNumber {
+        package_name: String,
+        dependency_name: String,
+    },
 }
 
-pub fn pin_version_numbers_in_internal_packages<P>(root: P, action: Action) -> Result<(), PinError>
+fn needs_modification<'a, 'b>(
+    dependency_name: &'a String,
+    dependency_version: &'a String,
+    package_version_by_package_name: &'b HashMap<String, String>,
+) -> Option<&'b String> {
+    package_version_by_package_name
+        .get(dependency_name)
+        .and_then(|expected| match expected == dependency_version {
+            true => None,
+            false => Some(expected),
+        })
+}
+
+pub fn modify<P>(root: P) -> Result<(), PinError>
 where
     P: AsRef<Path>,
 {
@@ -95,82 +115,213 @@ where
         .values()
         .map(|package| {
             (
-                package.contents.name.to_owned(),
-                package.contents.version.to_owned(),
+                package.contents.name.clone(),
+                package.contents.version.clone(),
             )
         })
         .collect();
 
-    let mut exit_code = 0;
-
-    for (_package_name, mut package_manifest) in package_manifest_by_package_name.into_iter() {
-        let mut dependencies_to_update: Vec<UnpinnedDependency> = Vec::new();
-        for dependency_group in DependencyGroup::VALUES.iter() {
-            if let Some(mut unpinned_dependencies) = package_manifest
-                .get_dependency_group_mut(dependency_group)
-                .map(|dependencies| -> Vec<UnpinnedDependency> {
-                    dependencies
-                        .into_iter()
-                        .filter_map(
-                            |(dependency_name, dependency_version)| -> Option<UnpinnedDependency> {
-                                package_version_by_package_name
-                                    .get(dependency_name)
-                                    .and_then(|internal_dependency_declared_version| {
-                                        let used_dependency_version = dependency_version
-                                            .as_str()
-                                            .expect(
-                                                "Expected each dependency version to be a string",
-                                            )
-                                            .to_owned();
-                                        match used_dependency_version
-                                            .eq(internal_dependency_declared_version)
-                                        {
-                                            true => None,
-                                            false => {
-                                                *dependency_version = serde_json::Value::String(
-                                                    internal_dependency_declared_version.to_owned(),
-                                                );
-                                                Some(UnpinnedDependency {
-                                                    name: dependency_name.to_owned(),
-                                                    actual: used_dependency_version,
-                                                    expected: internal_dependency_declared_version
-                                                        .to_owned(),
-                                                })
-                                            }
-                                        }
-                                    })
-                            },
-                        )
-                        .collect()
-                })
-            {
-                dependencies_to_update.append(&mut unpinned_dependencies)
+    for (package_name, mut package_manifest) in package_manifest_by_package_name {
+        let mut dirty = false;
+        for dependency_group in DependencyGroup::VALUES {
+            let dependencies = package_manifest.get_dependency_group_mut(dependency_group);
+            if dependencies.is_none() {
+                continue;
             }
+            let dependencies = dependencies.unwrap();
+
+            dependencies.into_iter().map(|thing| thing).try_for_each(
+                |(dependency_name, dependency_version)| match &dependency_version {
+                    serde_json::Value::String(dep_version) => {
+                        if let Some(expected) = needs_modification(
+                            dependency_name,
+                            dep_version,
+                            &package_version_by_package_name,
+                        ) {
+                            *dependency_version = expected.to_owned().into();
+                            dirty = true;
+                        }
+                        Ok(())
+                    }
+                    _ => Err(PinErrorKind::NonStringVersionNumber {
+                        package_name: package_name.clone(),
+                        dependency_name: dependency_name.to_owned(),
+                    }),
+                },
+            )?;
         }
 
-        if !dependencies_to_update.is_empty() {
-            if action == Action::Lint {
-                exit_code = 1;
-                println!(
-                    "File contains unexpected dependency versions: {:?}",
-                    package_manifest.path()
-                );
-                for dependency in dependencies_to_update {
-                    println!(
-                        "\tdependency: {:?}\texpected: {:?}\tgot: {:?}",
-                        dependency.name, dependency.expected, dependency.actual
-                    );
-                }
-            } else {
-                PackageManifest::write(root, package_manifest)?;
-            }
+        if dirty {
+            PackageManifest::write(root, package_manifest)?
         }
     }
 
-    if action == Action::Lint && exit_code != 0 {
-        return Err(PinError {
-            kind: PinErrorKind::UnexpectedInternalDependencyVersion,
-        });
-    }
     Ok(())
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct PinLintError {
+    pub kind: PinLintErrorKind,
+}
+
+impl Display for PinLintError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            PinLintErrorKind::NonStringVersionNumber {
+                package_name,
+                dependency_name,
+            } => {
+                write!(f, "unable to parse `{}` package.json: encountered non-string version for dependency `{}`", package_name, dependency_name)
+            }
+            PinLintErrorKind::UnpinnedDependencies(unpinned_dependencies) => {
+                writeln!(f, "found unpinned dependency versions\n")?;
+                write!(f, "{}", unpinned_dependencies)
+            }
+            _ => write!(f, "error linting internal dependency versions"),
+        }
+    }
+}
+
+impl std::error::Error for PinLintError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.kind {
+            PinLintErrorKind::FromFile(err) => Some(err),
+            PinLintErrorKind::EnumeratePackageManifests(err) => Some(err),
+            PinLintErrorKind::NonStringVersionNumber {
+                package_name: _,
+                dependency_name: _,
+            } => None,
+            PinLintErrorKind::UnpinnedDependencies(_) => None,
+        }
+    }
+}
+
+impl From<FromFileError> for PinLintError {
+    fn from(err: FromFileError) -> Self {
+        Self {
+            kind: PinLintErrorKind::FromFile(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsError> for PinLintError {
+    fn from(err: EnumeratePackageManifestsError) -> Self {
+        Self {
+            kind: PinLintErrorKind::EnumeratePackageManifests(err),
+        }
+    }
+}
+
+impl From<PinLintErrorKind> for PinLintError {
+    fn from(kind: PinLintErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+#[derive(Debug)]
+pub enum PinLintErrorKind {
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    EnumeratePackageManifests(EnumeratePackageManifestsError),
+    #[non_exhaustive]
+    NonStringVersionNumber {
+        package_name: String,
+        dependency_name: String,
+    },
+    #[non_exhaustive]
+    UnpinnedDependencies(UnpinnedMonorepoDependencies),
+}
+
+fn get_unpinned_dependency(
+    dependency_name: &String,
+    dependency_version: &String,
+    package_version_by_package_name: &HashMap<String, String>,
+) -> Option<UnpinnedDependency> {
+    package_version_by_package_name
+        .get(dependency_name)
+        .and_then(|expected| match expected == dependency_version {
+            true => None,
+            false => Some(UnpinnedDependency {
+                name: dependency_name.to_owned(),
+                actual: dependency_version.to_owned(),
+                expected: expected.to_owned(),
+            }),
+        })
+}
+
+pub fn lint<P>(root: P) -> Result<(), PinLintError>
+where
+    P: AsRef<Path>,
+{
+    let root = root.as_ref();
+    let lerna_manifest = MonorepoManifest::from_directory(root)?;
+
+    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
+
+    let package_version_by_package_name: HashMap<String, String> = package_manifest_by_package_name
+        .values()
+        .map(|package| {
+            (
+                package.contents.name.clone(),
+                package.contents.version.clone(),
+            )
+        })
+        .collect();
+
+    let mut unpinned_dependencies: Vec<UnpinnedPackageDependencies> = Default::default();
+
+    for (package_name, mut package_manifest) in package_manifest_by_package_name {
+        let mut unpinned_package_dependencies: Vec<UnpinnedDependency> = Default::default();
+        for dependency_group in DependencyGroup::VALUES {
+            let dependencies = package_manifest.get_dependency_group_mut(dependency_group);
+            if dependencies.is_none() {
+                continue;
+            }
+            let dependencies = dependencies.unwrap();
+
+            let mut unpinned_group_dependencies: Vec<UnpinnedDependency> = dependencies
+                .into_iter()
+                .filter_map(
+                    |(dependency_name, dependency_version)| match &dependency_version {
+                        serde_json::Value::String(dep_version) => {
+                            match get_unpinned_dependency(
+                                dependency_name,
+                                dep_version,
+                                &package_version_by_package_name,
+                            ) {
+                                Some(unpinned_dependency) => {
+                                    *dependency_version =
+                                        unpinned_dependency.expected.clone().into();
+                                    Some(Ok(unpinned_dependency))
+                                }
+                                None => None,
+                            }
+                        }
+                        _ => Some(Err(PinLintErrorKind::NonStringVersionNumber {
+                            package_name: package_name.clone(),
+                            dependency_name: dependency_name.to_owned(),
+                        })),
+                    },
+                )
+                .collect::<Result<_, _>>()?;
+
+            unpinned_package_dependencies.append(&mut unpinned_group_dependencies);
+        }
+
+        if !unpinned_package_dependencies.is_empty() {
+            unpinned_dependencies.push(UnpinnedPackageDependencies::from((
+                package_manifest.path(),
+                unpinned_package_dependencies,
+            )));
+        }
+    }
+
+    match unpinned_dependencies.is_empty() {
+        true => Ok(()),
+        false => Err(PinLintErrorKind::UnpinnedDependencies(
+            unpinned_dependencies.into(),
+        ))?,
+    }
 }

@@ -13,3 +13,4 @@ pub mod opts;
 pub mod package_manifest;
 pub mod pin;
 pub mod query;
+mod unpinned_dependencies;
