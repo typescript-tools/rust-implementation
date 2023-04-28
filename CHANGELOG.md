@@ -1,3 +1,10 @@
+## [6.0.7](https://github.com/typescript-tools/rust-implementation/compare/v6.0.6...v6.0.7) (2023-04-28)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate clap to v4.2.5 ([7717cdb](https://github.com/typescript-tools/rust-implementation/commit/7717cdb20a1490ce20c138535cfa996beab95a24))
+
 ## [6.0.6](https://github.com/typescript-tools/rust-implementation/compare/v6.0.5...v6.0.6) (2023-04-20)
 
 
