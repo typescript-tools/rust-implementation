@@ -13,21 +13,6 @@
       }
     ],
     "@semantic-release/release-notes-generator",
-    [
-      "@codedependant/semantic-release-docker",
-      {
-        "dockerFile": "Dockerfile",
-        "dockerTags": [
-          "latest-alpine",
-          "{{version}}-alpine",
-          "{{major}}-latest-alpine",
-          "{{major}}.{{minor}}-latest-alpine"
-        ],
-        "dockerImage": "hamroctopus/typescript-tools",
-        "dockerProject": null,
-        "dockerLogin": false
-      }
-    ],
     "@semantic-release/changelog",
     "@semantic-release-cargo/semantic-release-cargo",
     "@semantic-release/npm",

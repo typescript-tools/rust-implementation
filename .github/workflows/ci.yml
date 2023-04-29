@@ -19,18 +19,6 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  build-docker-image:
-    name: Build docker image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      # TODO: use buildx caching
-
-      - name: Build docker image
-        run: docker build -f Dockerfile .
-
   # Room for improvement regarding caching/work-skipping. One example here
   # https://github.com/ClementTsang/bottom/blob/92ec3599363c710815c286e975bbb6cc748708dd/.github/workflows/ci.yml#L195
   cargo-check:
