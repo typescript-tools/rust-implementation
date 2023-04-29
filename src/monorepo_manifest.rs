@@ -73,6 +73,8 @@ pub enum EnumeratePackageManifestsErrorKind {
     GlobWalkError(globwalk::WalkError),
     #[non_exhaustive]
     FromFile(FromFileError),
+    #[non_exhaustive]
+    PackageInMonorepoRoot(PathBuf),
 }
 
 impl Display for EnumeratePackageManifestsErrorKind {
@@ -85,10 +87,13 @@ impl Display for EnumeratePackageManifestsErrorKind {
                 write!(f, "unable to build glob walker")
             }
             EnumeratePackageManifestsErrorKind::FromFile(_) => {
-                write!(f, "error reading file")
+                write!(f, "unable to reading file")
             }
             EnumeratePackageManifestsErrorKind::GlobWalkError(_) => {
                 write!(f, "error walking directory tree")
+            }
+            EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(path) => {
+                write!(f, "package in monorepo root: {:?}", path)
             }
         }
     }
@@ -101,6 +106,7 @@ impl std::error::Error for EnumeratePackageManifestsErrorKind {
             EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err) => Some(err),
             EnumeratePackageManifestsErrorKind::FromFile(err) => err.source(),
             EnumeratePackageManifestsErrorKind::GlobWalkError(err) => Some(err),
+            EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(_) => None,
         }
     }
 }
@@ -143,9 +149,13 @@ fn get_internal_package_manifests(
                     let manifest = PackageManifest::from_directory(
                         &monorepo_root,
                         path.parent()
-                            .expect("Unexpected package in monorepo root")
+                            .ok_or_else(|| {
+                                EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(
+                                    path.to_owned(),
+                                )
+                            })?
                             .strip_prefix(&monorepo_root)
-                            .expect("Unexpected package in monorepo root"),
+                            .expect("expected all files to be children of monorepo root"),
                     )
                     .map_err(EnumeratePackageManifestsErrorKind::FromFile)?;
                     Ok(manifest)
