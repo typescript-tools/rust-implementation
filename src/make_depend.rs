@@ -34,9 +34,7 @@ pub struct MakeDependencyMakefileError {
 
 impl Display for MakeDependencyMakefileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            _ => write!(f, "error creating package makefile"),
-        }
+        write!(f, "error creating package makefile")
     }
 }
 

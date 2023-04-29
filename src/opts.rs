@@ -89,11 +89,11 @@ pub enum InternalDependenciesFormat {
     Path,
 }
 
-impl Into<query::InternalDependenciesFormat> for InternalDependenciesFormat {
-    fn into(self) -> query::InternalDependenciesFormat {
-        match self {
-            InternalDependenciesFormat::Name => query::InternalDependenciesFormat::Name,
-            InternalDependenciesFormat::Path => query::InternalDependenciesFormat::Path,
+impl From<InternalDependenciesFormat> for query::InternalDependenciesFormat {
+    fn from(value: InternalDependenciesFormat) -> Self {
+        match value {
+            InternalDependenciesFormat::Name => Self::Name,
+            InternalDependenciesFormat::Path => Self::Path,
         }
     }
 }

@@ -13,7 +13,7 @@ use typescript_tools::{link, lint, make_depend, pin, query};
 fn main() -> Result<(), anyhow::Error> {
     let args = opts::Opts::parse();
 
-    Ok(match args.subcommand {
+    match args.subcommand {
         opts::ClapSubCommand::Link(args) => match args.action {
             Action::Modify => link::modify(args.root)?,
             Action::Lint => link::lint(args.root)?,
@@ -40,5 +40,6 @@ fn main() -> Result<(), anyhow::Error> {
                 lint::lint_dependency_version(args.root, &args.dependencies)?
             }
         },
-    })
+    };
+    Ok(())
 }

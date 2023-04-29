@@ -139,7 +139,7 @@ where
             }
             let dependencies = dependencies.unwrap();
 
-            dependencies.into_iter().map(|thing| thing).try_for_each(
+            dependencies.into_iter().try_for_each(
                 |(dependency_name, dependency_version)| match &dependency_version {
                     serde_json::Value::String(dep_version) => {
                         if let Some(expected) = needs_modification(
@@ -287,16 +287,11 @@ where
                 .filter_map(|(dependency_name, dependency_version)| -> Option<Result<UnpinnedDependency, PinLintErrorKind>> {
                     match dependency_version {
                         serde_json::Value::String(dep_version) => {
-                            match get_unpinned_dependency(
+                            get_unpinned_dependency(
                                 dependency_name,
                                 dep_version,
                                 &package_version_by_package_name,
-                            ) {
-                                Some(unpinned_dependency) => {
-                                    Some(Ok(unpinned_dependency))
-                                }
-                                None => None,
-                            }
+                            ).map(Ok)
                         }
                         _ => Some(Err(PinLintErrorKind::NonStringVersionNumber {
                             package_name: package_name.clone(),
@@ -312,7 +307,7 @@ where
     match unpinned_dependencies.is_empty() {
         true => Ok(()),
         false => Err(PinLintErrorKind::UnpinnedDependencies(
-            UnpinnedMonorepoDependencies::from(unpinned_dependencies),
+            unpinned_dependencies,
         ))?,
     }
 }

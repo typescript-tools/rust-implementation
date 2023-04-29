@@ -131,7 +131,7 @@ where
 
         let expected_version_number =
             most_common_dependency_version(&package_manifests_by_dependency_version)
-                .ok_or(LintErrorKind::UnknownDependency(dependency.to_string()))?;
+                .ok_or_else(|| LintErrorKind::UnknownDependency(dependency.to_string()))?;
 
         println!("Linting versions of dependency \"{}\"", &dependency);
 

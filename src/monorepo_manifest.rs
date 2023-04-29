@@ -95,7 +95,7 @@ fn get_internal_package_manifests(
             let glob = Path::new(&package_manifest_glob.0).join("package.json");
             glob.to_str()
                 .map(ToOwned::to_owned)
-                .ok_or_else(|| EnumeratePackageManifestsError {
+                .ok_or(EnumeratePackageManifestsError {
                     kind: EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(glob),
                 })
         })

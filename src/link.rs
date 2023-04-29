@@ -26,9 +26,7 @@ pub struct LinkError {
 
 impl Display for LinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            _ => write!(f, "error linking TypeScript project references"),
-        }
+        write!(f, "error linking TypeScript project references")
     }
 }
 
