@@ -100,6 +100,17 @@ fn needs_modification<'a, 'b>(
         })
 }
 
+fn get_dependency_group_mut<'a>(
+    package_manifest: &'a mut PackageManifest,
+    dependency_group: &str,
+) -> Option<&'a mut serde_json::Map<String, serde_json::Value>> {
+    package_manifest
+        .contents
+        .extra_fields
+        .get_mut(dependency_group)
+        .and_then(serde_json::Value::as_object_mut)
+}
+
 pub fn modify<P>(root: P) -> Result<(), PinError>
 where
     P: AsRef<Path>,
@@ -122,7 +133,7 @@ where
     for (package_name, mut package_manifest) in package_manifest_by_package_name {
         let mut dirty = false;
         for dependency_group in DependencyGroup::VALUES {
-            let dependencies = package_manifest.get_dependency_group_mut(dependency_group);
+            let dependencies = get_dependency_group_mut(&mut package_manifest, dependency_group);
             if dependencies.is_none() {
                 continue;
             }

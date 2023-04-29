@@ -30,14 +30,7 @@ pub enum DependencyGroup {
 }
 
 impl DependencyGroup {
-    pub const VALUES: [Self; 4] = [
-        Self::Dependencies,
-        Self::DevDependencies,
-        Self::OptionalDependencies,
-        Self::PeerDependencies,
-    ];
-
-    pub(crate) const STRINGS: [&str; 4] = [
+    pub(crate) const VALUES: [&str; 4] = [
         "dependencies",
         "devDependencies",
         "optionalDependencies",
@@ -94,7 +87,7 @@ impl PackageManifest {
     where
         S: AsRef<str>,
     {
-        DependencyGroup::STRINGS
+        DependencyGroup::VALUES
             .iter()
             // only iterate over the objects corresponding to each dependency group
             .filter_map(|dependency_group| {
@@ -114,7 +107,7 @@ impl PackageManifest {
     }
 
     pub fn dependencies_iter(&self) -> impl Iterator<Item = (&String, &serde_json::Value)> {
-        DependencyGroup::STRINGS
+        DependencyGroup::VALUES
             .iter()
             .filter_map(|dependency_group| {
                 self.contents
@@ -129,7 +122,7 @@ impl PackageManifest {
         &'a self,
         package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
     ) -> impl Iterator<Item = &'a PackageManifest> {
-        DependencyGroup::STRINGS
+        DependencyGroup::VALUES
             .iter()
             // only iterate over the objects corresponding to each dependency group
             .filter_map(|dependency_group| {
@@ -176,17 +169,6 @@ impl PackageManifest {
                     .unwrap()
             })
             .collect()
-    }
-
-    // REFACTOR: return an iterator
-    pub fn get_dependency_group_mut(
-        &mut self,
-        group: DependencyGroup,
-    ) -> Option<&mut serde_json::Map<String, serde_json::Value>> {
-        self.contents
-            .extra_fields
-            .get_mut(group.as_str())
-            .and_then(serde_json::Value::as_object_mut)
     }
 
     // REFACTOR: for nearness
