@@ -56,7 +56,7 @@ pub enum EnumeratePackageManifestsErrorKind {
     #[non_exhaustive]
     GlobWalkBuilderError(globwalk::GlobError),
     #[non_exhaustive]
-    FromFile(FromFileError),
+    FromFile(PathBuf, FromFileError),
 }
 
 impl Display for EnumeratePackageManifestsErrorKind {
@@ -68,7 +68,9 @@ impl Display for EnumeratePackageManifestsErrorKind {
             EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(_) => {
                 write!(f, "unable to build glob walker")
             }
-            EnumeratePackageManifestsErrorKind::FromFile(_) => write!(f, "error reading file"),
+            EnumeratePackageManifestsErrorKind::FromFile(path, _) => {
+                write!(f, "error reading file {:?}", path)
+            }
         }
     }
 }
@@ -78,7 +80,7 @@ impl std::error::Error for EnumeratePackageManifestsErrorKind {
         match &self {
             EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(_) => None,
             EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err) => Some(err),
-            EnumeratePackageManifestsErrorKind::FromFile(err) => err.source(),
+            EnumeratePackageManifestsErrorKind::FromFile(_, err) => err.source(),
         }
     }
 }
@@ -117,17 +119,16 @@ fn get_internal_package_manifests(
         .parallel_map_custom(
             |options| options.threads(32),
             move |dir_entry| {
+                let path = dir_entry.path();
                 PackageManifest::from_directory(
                     &monorepo_root,
-                    dir_entry
-                        .path()
-                        .parent()
+                    path.parent()
                         .expect("Unexpected package in monorepo root")
                         .strip_prefix(&monorepo_root)
                         .expect("Unexpected package in monorepo root"),
                 )
                 .map_err(|err| EnumeratePackageManifestsError {
-                    kind: EnumeratePackageManifestsErrorKind::FromFile(err),
+                    kind: EnumeratePackageManifestsErrorKind::FromFile(path.to_owned(), err),
                 })
             },
         )
