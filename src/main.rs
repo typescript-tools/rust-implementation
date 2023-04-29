@@ -4,11 +4,10 @@ use std::io::{self, Write};
 
 use clap::Parser;
 
-use typescript_tools::{
-    link, lint, make_depend,
-    opts::{self, Action},
-    pin, query,
-};
+mod opts;
+
+use opts::Action;
+use typescript_tools::{link, lint, make_depend, pin, query};
 
 // RESUME: why is this not printing with display?
 fn main() -> Result<(), anyhow::Error> {
@@ -23,11 +22,16 @@ fn main() -> Result<(), anyhow::Error> {
             Action::Modify => pin::modify(args.root)?,
             Action::Lint => pin::lint(args.root)?,
         },
-        opts::ClapSubCommand::MakeDepend(args) => make_depend::make_dependency_makefile(args)?,
+        opts::ClapSubCommand::MakeDepend(args) => make_depend::make_dependency_makefile(
+            &args.root,
+            &args.package_directory,
+            &args.output_file,
+            args.create_pack_target,
+        )?,
         opts::ClapSubCommand::Query(args) => match args.subcommand {
             // FEAT: implement internal-dependents
             opts::ClapQuerySubCommand::InternalDependencies(args) => {
-                let output = query::query_internal_dependencies(args.root, args.format)?;
+                let output = query::query_internal_dependencies(args.root, args.format.into())?;
                 writeln!(io::stdout(), "{}", serde_json::to_string_pretty(&output)?)?;
             }
         },

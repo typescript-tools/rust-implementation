@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use askama::Template;
 use pathdiff::diff_paths;
@@ -74,10 +74,13 @@ pub enum MakeDependencyMakefileErrorKind {
 }
 
 pub fn make_dependency_makefile(
-    opts: crate::opts::MakeDepend,
+    root: &Path,
+    package_directory: &Path,
+    output_file: &Path,
+    create_pack_target: bool,
 ) -> Result<(), MakeDependencyMakefileError> {
-    let lerna_manifest = MonorepoManifest::from_directory(&opts.root)?;
-    let package_manifest = PackageManifest::from_directory(&opts.root, &opts.package_directory)?;
+    let lerna_manifest = MonorepoManifest::from_directory(root)?;
+    let package_manifest = PackageManifest::from_directory(root, package_directory)?;
 
     // determine the complete set of internal dependencies (and self!)
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
@@ -117,12 +120,8 @@ pub fn make_dependency_makefile(
 
     // create a string of the makefile contents
     let makefile_contents = MakefileTemplate {
-        root: opts
-            .root
-            .to_str()
-            .expect("Monorepo root is not UTF_8 encodable"),
-        output_file: opts
-            .output_file
+        root: root.to_str().expect("Monorepo root is not UTF_8 encodable"),
+        output_file: output_file
             .to_str()
             .expect("Output file is not UTF-8 encodable"),
         package_directory: package_manifest
@@ -141,7 +140,7 @@ pub fn make_dependency_makefile(
                         .to_owned()
                 })
                 .collect(),
-        create_pack_target: &opts.create_pack_target,
+        create_pack_target: &create_pack_target,
         npm_pack_archive_dependencies,
         internal_npm_dependencies_exclusive: &npm_pack_archive_dependencies
             .keys()
@@ -151,11 +150,8 @@ pub fn make_dependency_makefile(
     .render()
     .expect("Unable to render makefile template");
 
-    fs::write(
-        opts.package_directory.join(opts.output_file),
-        makefile_contents,
-    )
-    .expect("Unable to write makefile");
+    fs::write(package_directory.join(output_file), makefile_contents)
+        .expect("Unable to write makefile");
 
     Ok(())
 }

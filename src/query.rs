@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 use crate::configuration_file::ConfigurationFile;
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
-use crate::opts;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -72,16 +71,22 @@ pub enum QueryErrorKind {
     PathInvalidUtf8(PathBuf),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum InternalDependenciesFormat {
+    Name,
+    Path,
+}
+
 pub fn query_internal_dependencies<P>(
     root: P,
-    format: opts::InternalDependenciesFormat,
+    format: InternalDependenciesFormat,
 ) -> Result<HashMap<String, Vec<String>>, QueryError>
 where
     P: AsRef<Path>,
 {
     fn inner(
         root: &Path,
-        format: opts::InternalDependenciesFormat,
+        format: InternalDependenciesFormat,
     ) -> Result<HashMap<String, Vec<String>>, QueryError> {
         let lerna_manifest = MonorepoManifest::from_directory(root)?;
 
@@ -94,8 +99,8 @@ where
             .map(
                 |(package_name, package_manifest)| -> Result<(String, Vec<String>), QueryError> {
                     let key = match format {
-                        crate::opts::InternalDependenciesFormat::Name => package_name.to_owned(),
-                        crate::opts::InternalDependenciesFormat::Path => package_manifest
+                        InternalDependenciesFormat::Name => package_name.to_owned(),
+                        InternalDependenciesFormat::Path => package_manifest
                             .directory()
                             .to_str()
                             .map(ToOwned::to_owned)
@@ -109,10 +114,10 @@ where
                         )
                         .into_iter()
                         .map(|dependency| match format {
-                            opts::InternalDependenciesFormat::Name => {
+                            InternalDependenciesFormat::Name => {
                                 Ok(dependency.contents.name.to_owned())
                             }
-                            opts::InternalDependenciesFormat::Path => dependency
+                            InternalDependenciesFormat::Path => dependency
                                 .directory()
                                 .to_str()
                                 .map(ToOwned::to_owned)

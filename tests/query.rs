@@ -2,7 +2,7 @@ use std::fs;
 
 use assert_json_diff::assert_json_eq;
 
-use typescript_tools::{opts::InternalDependenciesFormat, query::query_internal_dependencies};
+use typescript_tools::query::{query_internal_dependencies, InternalDependenciesFormat};
 
 #[test]
 fn query_snapshot_happy_path_with_format_name() -> Result<(), anyhow::Error> {

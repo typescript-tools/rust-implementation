@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{crate_version, ArgAction, Parser, ValueEnum};
+use typescript_tools::query;
 
 #[derive(Debug, Parser)]
 #[clap(name = "monorepo", version = crate_version!(), author = "Eric Crosson <eric.s.crosson@utexas.edu>")]
@@ -86,6 +87,15 @@ pub enum ClapQuerySubCommand {
 pub enum InternalDependenciesFormat {
     Name,
     Path,
+}
+
+impl Into<query::InternalDependenciesFormat> for InternalDependenciesFormat {
+    fn into(self) -> query::InternalDependenciesFormat {
+        match self {
+            InternalDependenciesFormat::Name => query::InternalDependenciesFormat::Name,
+            InternalDependenciesFormat::Path => query::InternalDependenciesFormat::Path,
+        }
+    }
 }
 
 #[derive(Debug, Parser)]
