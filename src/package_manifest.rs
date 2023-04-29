@@ -37,6 +37,13 @@ impl DependencyGroup {
         Self::PeerDependencies,
     ];
 
+    pub(crate) const STRINGS: [&str; 4] = [
+        "dependencies",
+        "devDependencies",
+        "optionalDependencies",
+        "peerDependencies",
+    ];
+
     pub fn as_str(&self) -> &str {
         match self {
             DependencyGroup::Dependencies => "dependencies",
@@ -81,19 +88,13 @@ impl AsRef<PackageManifest> for PackageManifest {
 }
 
 impl PackageManifest {
+    // REFACTOR: for nearness
     // Get the dependency
     pub fn get_dependency_version<S>(&self, dependency: S) -> Option<String>
     where
         S: AsRef<str>,
     {
-        static DEPENDENCY_GROUPS: &[&str] = &[
-            "dependencies",
-            "devDependencies",
-            "optionalDependencies",
-            "peerDependencies",
-        ];
-
-        DEPENDENCY_GROUPS
+        DependencyGroup::STRINGS
             .iter()
             // only iterate over the objects corresponding to each dependency group
             .filter_map(|dependency_group| {
@@ -116,14 +117,7 @@ impl PackageManifest {
         &'a self,
         package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
     ) -> impl Iterator<Item = &'a PackageManifest> {
-        static DEPENDENCY_GROUPS: &[&str] = &[
-            "dependencies",
-            "devDependencies",
-            "optionalDependencies",
-            "peerDependencies",
-        ];
-
-        DEPENDENCY_GROUPS
+        DependencyGroup::STRINGS
             .iter()
             // only iterate over the objects corresponding to each dependency group
             .filter_map(|dependency_group| {
