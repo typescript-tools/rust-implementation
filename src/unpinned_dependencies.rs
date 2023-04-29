@@ -59,6 +59,23 @@ impl From<Vec<UnpinnedPackageDependencies>> for UnpinnedMonorepoDependencies {
     }
 }
 
+impl FromIterator<(PathBuf, Vec<UnpinnedDependency>)> for UnpinnedMonorepoDependencies {
+    fn from_iter<T: IntoIterator<Item = (PathBuf, Vec<UnpinnedDependency>)>>(iter: T) -> Self {
+        let collection = iter
+            .into_iter()
+            .filter(|(_package_name, unpinned_dependencies)| !unpinned_dependencies.is_empty())
+            .map(Into::into)
+            .collect();
+        Self(collection)
+    }
+}
+
+impl UnpinnedMonorepoDependencies {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;

@@ -113,6 +113,18 @@ impl PackageManifest {
             .next()
     }
 
+    pub fn dependencies_iter(&self) -> impl Iterator<Item = (&String, &serde_json::Value)> {
+        DependencyGroup::STRINGS
+            .iter()
+            .filter_map(|dependency_group| {
+                self.contents
+                    .extra_fields
+                    .get(dependency_group)?
+                    .as_object()
+            })
+            .flat_map(|object| object.iter())
+    }
+
     pub fn internal_dependencies_iter<'a>(
         &'a self,
         package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
@@ -166,6 +178,7 @@ impl PackageManifest {
             .collect()
     }
 
+    // REFACTOR: return an iterator
     pub fn get_dependency_group_mut(
         &mut self,
         group: DependencyGroup,

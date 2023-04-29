@@ -6,9 +6,7 @@ use crate::configuration_file::{ConfigurationFile, WriteError};
 use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::package_manifest::{DependencyGroup, PackageManifest};
-use crate::unpinned_dependencies::{
-    UnpinnedDependency, UnpinnedMonorepoDependencies, UnpinnedPackageDependencies,
-};
+use crate::unpinned_dependencies::{UnpinnedDependency, UnpinnedMonorepoDependencies};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -270,21 +268,13 @@ where
         })
         .collect();
 
-    let mut unpinned_dependencies: Vec<UnpinnedPackageDependencies> = Default::default();
-
-    for (package_name, mut package_manifest) in package_manifest_by_package_name {
-        let mut unpinned_package_dependencies: Vec<UnpinnedDependency> = Default::default();
-        for dependency_group in DependencyGroup::VALUES {
-            let dependencies = package_manifest.get_dependency_group_mut(dependency_group);
-            if dependencies.is_none() {
-                continue;
-            }
-            let dependencies = dependencies.unwrap();
-
-            let mut unpinned_group_dependencies: Vec<UnpinnedDependency> = dependencies
-                .into_iter()
-                .filter_map(
-                    |(dependency_name, dependency_version)| match &dependency_version {
+    let unpinned_dependencies: UnpinnedMonorepoDependencies = package_manifest_by_package_name
+        .into_iter()
+        .map(|(package_name, package_manifest)| {
+            let unpinned_deps = package_manifest
+                .dependencies_iter()
+                .filter_map(|(dependency_name, dependency_version)| -> Option<Result<UnpinnedDependency, PinLintErrorKind>> {
+                    match dependency_version {
                         serde_json::Value::String(dep_version) => {
                             match get_unpinned_dependency(
                                 dependency_name,
@@ -292,8 +282,6 @@ where
                                 &package_version_by_package_name,
                             ) {
                                 Some(unpinned_dependency) => {
-                                    *dependency_version =
-                                        unpinned_dependency.expected.clone().into();
                                     Some(Ok(unpinned_dependency))
                                 }
                                 None => None,
@@ -303,25 +291,17 @@ where
                             package_name: package_name.clone(),
                             dependency_name: dependency_name.to_owned(),
                         })),
-                    },
-                )
+                    }
+                })
                 .collect::<Result<_, _>>()?;
-
-            unpinned_package_dependencies.append(&mut unpinned_group_dependencies);
-        }
-
-        if !unpinned_package_dependencies.is_empty() {
-            unpinned_dependencies.push(UnpinnedPackageDependencies::from((
-                package_manifest.path(),
-                unpinned_package_dependencies,
-            )));
-        }
-    }
+            Ok((package_manifest.path(), unpinned_deps))
+        })
+        .collect::<Result<_, PinLintErrorKind>>()?;
 
     match unpinned_dependencies.is_empty() {
         true => Ok(()),
         false => Err(PinLintErrorKind::UnpinnedDependencies(
-            unpinned_dependencies.into(),
+            UnpinnedMonorepoDependencies::from(unpinned_dependencies),
         ))?,
     }
 }
