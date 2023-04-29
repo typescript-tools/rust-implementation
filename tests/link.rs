@@ -34,5 +34,7 @@ fn link_should_correct_incorrect_project_references() -> Result<(), anyhow::Erro
     // Assert
     link_typescript_project_references(root, Action::Lint)?;
 
+    // TODO: snapshot test, to ensure the trailing newline, for example
+
     Ok(())
 }

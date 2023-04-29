@@ -73,7 +73,7 @@ pub trait ConfigurationFile: Sized {
         (|| {
             let s = serde_json::to_string_pretty(configuration_file.contents())
                 .map_err(WriteErrorKind::Serialize)?;
-            write!(writer, "{}\n", s).map_err(WriteErrorKind::Stream)
+            writeln!(writer, "{}", s).map_err(WriteErrorKind::Stream)
         })()
         .map_err(|kind| WriteError {
             path: filename,

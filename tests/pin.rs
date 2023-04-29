@@ -30,5 +30,7 @@ fn pin_should_correct_unpinned_internal_dependency() -> Result<(), anyhow::Error
     // Assert
     typescript_tools::pin::lint(root)?;
 
+    // TODO: snapshot test, to ensure the trailing newline, for example
+
     Ok(())
 }
