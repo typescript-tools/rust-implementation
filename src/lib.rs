@@ -10,6 +10,7 @@ pub mod lint;
 pub mod make_depend;
 pub mod monorepo_manifest;
 pub mod opts;
+mod out_of_date_project_references;
 pub mod package_manifest;
 pub mod pin;
 pub mod query;

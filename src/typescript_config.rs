@@ -20,6 +20,7 @@ pub struct TypescriptParentProjectReferenceFile {
     pub references: Vec<TypescriptProjectReference>,
 }
 
+#[derive(Debug)]
 pub struct TypescriptParentProjectReference {
     directory: PathBuf,
     pub contents: TypescriptParentProjectReferenceFile,
@@ -53,6 +54,7 @@ impl ConfigurationFile for TypescriptParentProjectReference {
     }
 }
 
+#[derive(Debug)]
 pub struct TypescriptConfig {
     directory: PathBuf,
     pub contents: serde_json::Map<String, serde_json::Value>,

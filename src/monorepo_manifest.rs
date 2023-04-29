@@ -88,7 +88,7 @@ impl std::error::Error for EnumeratePackageManifestsErrorKind {
 fn get_internal_package_manifests(
     monorepo_root: &Path,
     package_globs: &[PackageManifestGlob],
-) -> Result<Vec<PackageManifest>, EnumeratePackageManifestsError> {
+) -> Result<impl Iterator<Item = PackageManifest>, EnumeratePackageManifestsError> {
     let mut package_manifests: Vec<String> = package_globs
         .iter()
         .map(|package_manifest_glob| {
@@ -107,32 +107,35 @@ fn get_internal_package_manifests(
     // Take ownership so we can move this value into the parallel_map
     let monorepo_root = monorepo_root.to_owned();
 
-    GlobWalkerBuilder::from_patterns(&monorepo_root, &package_manifests)
-        .file_type(FileType::FILE)
-        .min_depth(1)
-        .build()
-        .map_err(|err| EnumeratePackageManifestsError {
-            kind: EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err),
-        })?
-        // FIXME: do not drop errors silently
-        .filter_map(Result::ok)
-        .parallel_map_custom(
-            |options| options.threads(32),
-            move |dir_entry| {
-                let path = dir_entry.path();
-                PackageManifest::from_directory(
-                    &monorepo_root,
-                    path.parent()
-                        .expect("Unexpected package in monorepo root")
-                        .strip_prefix(&monorepo_root)
-                        .expect("Unexpected package in monorepo root"),
-                )
-                .map_err(|err| EnumeratePackageManifestsError {
-                    kind: EnumeratePackageManifestsErrorKind::FromFile(path.to_owned(), err),
-                })
-            },
-        )
-        .collect()
+    let package_manifests: Vec<_> =
+        GlobWalkerBuilder::from_patterns(&monorepo_root, &package_manifests)
+            .file_type(FileType::FILE)
+            .min_depth(1)
+            .build()
+            .map_err(|err| EnumeratePackageManifestsError {
+                kind: EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err),
+            })?
+            // FIXME: do not drop errors silently
+            .filter_map(Result::ok)
+            .parallel_map_custom(
+                |options| options.threads(32),
+                move |dir_entry| {
+                    let path = dir_entry.path();
+                    PackageManifest::from_directory(
+                        &monorepo_root,
+                        path.parent()
+                            .expect("Unexpected package in monorepo root")
+                            .strip_prefix(&monorepo_root)
+                            .expect("Unexpected package in monorepo root"),
+                    )
+                    .map_err(|err| EnumeratePackageManifestsError {
+                        kind: EnumeratePackageManifestsErrorKind::FromFile(path.to_owned(), err),
+                    })
+                },
+            )
+            .collect::<Result<_, _>>()?;
+
+    Ok(package_manifests.into_iter())
 }
 
 impl MonorepoManifest {
@@ -166,14 +169,13 @@ impl MonorepoManifest {
         &self,
     ) -> Result<HashMap<String, PackageManifest>, EnumeratePackageManifestsError> {
         Ok(get_internal_package_manifests(&self.root, &self.globs)?
-            .into_iter()
             .map(|manifest| (manifest.contents.name.to_owned(), manifest))
             .collect())
     }
 
     pub fn internal_package_manifests(
         &self,
-    ) -> Result<Vec<PackageManifest>, EnumeratePackageManifestsError> {
+    ) -> Result<impl Iterator<Item = PackageManifest>, EnumeratePackageManifestsError> {
         get_internal_package_manifests(&self.root, &self.globs)
     }
 }

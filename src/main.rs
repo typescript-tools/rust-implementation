@@ -15,9 +15,10 @@ fn main() -> Result<(), anyhow::Error> {
     let args = opts::Opts::parse();
 
     Ok(match args.subcommand {
-        opts::ClapSubCommand::Link(args) => {
-            link::link_typescript_project_references(args.root, args.action)?
-        }
+        opts::ClapSubCommand::Link(args) => match args.action {
+            Action::Modify => link::modify(args.root)?,
+            Action::Lint => link::lint(args.root)?,
+        },
         opts::ClapSubCommand::Pin(args) => match args.action {
             Action::Modify => pin::modify(args.root)?,
             Action::Lint => pin::lint(args.root)?,
