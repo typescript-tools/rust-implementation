@@ -20,8 +20,6 @@ impl Display for LintError {
                 "expected dependency `{}` to be used in at least one package",
                 dependency
             ),
-            // REFACTOR: move the specific failures into this variant and the
-            // display logic into this function
             LintErrorKind::UnexpectedInternalDependencyVersion => write!(f, "lint errors detected"),
             _ => write!(f, "error linting dependency versions"),
         }
