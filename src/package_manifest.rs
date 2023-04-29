@@ -21,13 +21,8 @@ pub struct PackageManifest {
     pub contents: PackageManifestFile,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum DependencyGroup {
-    Dependencies,
-    DevDependencies,
-    OptionalDependencies,
-    PeerDependencies,
-}
+#[derive(Debug)]
+pub(crate) struct DependencyGroup;
 
 impl DependencyGroup {
     pub(crate) const VALUES: [&str; 4] = [
@@ -36,15 +31,6 @@ impl DependencyGroup {
         "optionalDependencies",
         "peerDependencies",
     ];
-
-    pub fn as_str(&self) -> &str {
-        match self {
-            DependencyGroup::Dependencies => "dependencies",
-            DependencyGroup::DevDependencies => "devDependencies",
-            DependencyGroup::OptionalDependencies => "optionalDependencies",
-            DependencyGroup::PeerDependencies => "peerDependencies",
-        }
-    }
 }
 
 impl ConfigurationFile for PackageManifest {
