@@ -49,6 +49,20 @@ impl std::error::Error for EnumeratePackageManifestsError {
     }
 }
 
+impl From<globwalk::WalkError> for EnumeratePackageManifestsError {
+    fn from(err: globwalk::WalkError) -> Self {
+        Self {
+            kind: EnumeratePackageManifestsErrorKind::GlobWalkError(err),
+        }
+    }
+}
+
+impl From<EnumeratePackageManifestsErrorKind> for EnumeratePackageManifestsError {
+    fn from(kind: EnumeratePackageManifestsErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
 #[derive(Debug)]
 pub enum EnumeratePackageManifestsErrorKind {
     #[non_exhaustive]
@@ -56,7 +70,9 @@ pub enum EnumeratePackageManifestsErrorKind {
     #[non_exhaustive]
     GlobWalkBuilderError(globwalk::GlobError),
     #[non_exhaustive]
-    FromFile(PathBuf, FromFileError),
+    GlobWalkError(globwalk::WalkError),
+    #[non_exhaustive]
+    FromFile(FromFileError),
 }
 
 impl Display for EnumeratePackageManifestsErrorKind {
@@ -68,8 +84,11 @@ impl Display for EnumeratePackageManifestsErrorKind {
             EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(_) => {
                 write!(f, "unable to build glob walker")
             }
-            EnumeratePackageManifestsErrorKind::FromFile(path, _) => {
-                write!(f, "error reading file {:?}", path)
+            EnumeratePackageManifestsErrorKind::FromFile(_) => {
+                write!(f, "error reading file")
+            }
+            EnumeratePackageManifestsErrorKind::GlobWalkError(_) => {
+                write!(f, "error walking directory tree")
             }
         }
     }
@@ -80,7 +99,8 @@ impl std::error::Error for EnumeratePackageManifestsErrorKind {
         match &self {
             EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(_) => None,
             EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err) => Some(err),
-            EnumeratePackageManifestsErrorKind::FromFile(_, err) => err.source(),
+            EnumeratePackageManifestsErrorKind::FromFile(err) => err.source(),
+            EnumeratePackageManifestsErrorKind::GlobWalkError(err) => Some(err),
         }
     }
 }
@@ -115,22 +135,20 @@ fn get_internal_package_manifests(
             .map_err(|err| EnumeratePackageManifestsError {
                 kind: EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err),
             })?
-            // FIXME: do not drop errors silently
-            .filter_map(Result::ok)
             .parallel_map_custom(
                 |options| options.threads(32),
-                move |dir_entry| {
+                move |dir_entry| -> Result<PackageManifest, EnumeratePackageManifestsError> {
+                    let dir_entry = dir_entry?;
                     let path = dir_entry.path();
-                    PackageManifest::from_directory(
+                    let manifest = PackageManifest::from_directory(
                         &monorepo_root,
                         path.parent()
                             .expect("Unexpected package in monorepo root")
                             .strip_prefix(&monorepo_root)
                             .expect("Unexpected package in monorepo root"),
                     )
-                    .map_err(|err| EnumeratePackageManifestsError {
-                        kind: EnumeratePackageManifestsErrorKind::FromFile(path.to_owned(), err),
-                    })
+                    .map_err(EnumeratePackageManifestsErrorKind::FromFile)?;
+                    Ok(manifest)
                 },
             )
             .collect::<Result<_, _>>()?;
