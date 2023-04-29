@@ -124,7 +124,6 @@ fn link_children_packages(
         .iter()
         .fold(HashMap::new(), key_children_by_parent)
         .into_iter()
-        // DISCUSS: trying all of this in parallel
         .try_for_each(|(directory, children)| -> Result<(), LinkError> {
             let desired_project_references = create_project_references(children);
             let mut tsconfig = TypescriptParentProjectReference::from_directory(root, &directory)?;
@@ -235,7 +234,6 @@ fn link_package_dependencies(
                 println!("{}", serialized);
                 Ok(())
             } else {
-                // DISCUSS: we could parallelize the writes
                 Ok(TypescriptConfig::write(root, tsconfig)?)
             }
         })
