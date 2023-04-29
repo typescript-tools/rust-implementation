@@ -196,7 +196,7 @@ fn link_package_dependencies(
     lerna_manifest: &MonorepoManifest,
 ) -> Result<(), LinkError> {
     out_of_date_package_project_references(root, lerna_manifest)?
-        .map(
+        .filter_map(
             |OutOfDatePackageProjectReferences {
                  mut tsconfig,
                  desired_references,
@@ -213,7 +213,7 @@ fn link_package_dependencies(
 
                 let needs_update = !current_project_references.eq(&desired_references);
                 if !needs_update {
-                    return Ok(None);
+                    return None;
                 }
 
                 // Update the current tsconfig with the desired references
@@ -224,12 +224,9 @@ fn link_package_dependencies(
                     ),
                 );
 
-                Ok(Some(tsconfig))
+                Some(tsconfig)
             },
         )
-        .collect::<Result<Vec<Option<TypescriptConfig>>, LinkError>>()?
-        .into_iter()
-        .flatten()
         .map(|tsconfig| -> Result<(), LinkError> { Ok(TypescriptConfig::write(root, tsconfig)?) })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(())
