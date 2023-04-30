@@ -1,3 +1,10 @@
+## [7.0.2](https://github.com/typescript-tools/rust-implementation/compare/v7.0.1...v7.0.2) (2023-04-30)
+
+
+### Bug Fixes
+
+* provide path to io::FromFileError ([ac17622](https://github.com/typescript-tools/rust-implementation/commit/ac17622746b684186503aaca3b32685a059e0da5))
+
 ## [7.0.1](https://github.com/typescript-tools/rust-implementation/compare/v7.0.0...v7.0.1) (2023-04-30)
 
 
