@@ -190,7 +190,7 @@ fn link_package_dependencies(
                 Ok(Some(tsconfig))
             },
         )
-        .filter_map(|result_of_option| result_of_option.transpose())
+        .filter_map(Result::transpose)
         .map(|maybe_tsconfig| -> Result<(), LinkError> {
             let tsconfig = maybe_tsconfig?;
             Ok(TypescriptConfig::write(root, tsconfig)?)
@@ -313,7 +313,7 @@ fn out_of_date_parent_project_references<'a>(
                 false => None,
             })
         })
-        .filter_map(|maybe_value| maybe_value.transpose());
+        .filter_map(Result::transpose);
     Ok(iter)
 }
 
@@ -373,7 +373,7 @@ fn out_of_date_package_project_references<'a>(
                 false => None,
             })
         })
-        .filter_map(|maybe_package_project_reference| maybe_package_project_reference.transpose());
+        .filter_map(Result::transpose);
 
     Ok(iter)
 }
