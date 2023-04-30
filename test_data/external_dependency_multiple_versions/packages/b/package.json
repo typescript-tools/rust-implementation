@@ -3,6 +3,6 @@
   "version": "2.0.0",
   "private": true,
   "dependencies": {
-    "external": "2.0.0"
+    "@typescript-tools/external": "2.0.0"
   }
 }
