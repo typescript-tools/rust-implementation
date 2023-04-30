@@ -142,7 +142,7 @@ pub fn make_dependency_makefile(
         npm_pack_archive_dependencies,
         internal_npm_dependencies_exclusive: &npm_pack_archive_dependencies
             .keys()
-            .map(|string| string.as_str())
+            .map(String::as_str)
             .collect::<Vec<_>>(),
     }
     .render()
