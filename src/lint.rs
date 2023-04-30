@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::configuration_file::ConfigurationFile;
 use crate::io::FromFileError;
@@ -21,6 +21,9 @@ impl Display for LintError {
                 dependency
             ),
             LintErrorKind::UnexpectedInternalDependencyVersion => write!(f, "lint errors detected"),
+            LintErrorKind::InvalidUtf8(path) => {
+                write!(f, "path cannot be expressed as UTF-8: {:?}", path)
+            }
             _ => write!(f, "error linting dependency versions"),
         }
     }
@@ -33,6 +36,7 @@ impl std::error::Error for LintError {
             LintErrorKind::FromFile(err) => Some(err),
             LintErrorKind::UnknownDependency(_) => None,
             LintErrorKind::UnexpectedInternalDependencyVersion => None,
+            LintErrorKind::InvalidUtf8(_) => None,
         }
     }
 }
@@ -48,6 +52,8 @@ pub enum LintErrorKind {
     // FIXME: this isn't an error
     #[non_exhaustive]
     UnexpectedInternalDependencyVersion,
+    #[non_exhaustive]
+    InvalidUtf8(PathBuf),
 }
 
 impl From<FromFileError> for LintError {
@@ -107,21 +113,25 @@ where
                         .get_dependency_version(dependency)
                         .map(|dependency_version| (package_manifest, dependency_version))
                 })
-                .fold(
+                .try_fold(
                     HashMap::new(),
-                    |mut accumulator, (package_manifest, dependency_version)| {
-                        let packages_using_this_dependency_version =
+                    |mut accumulator,
+                     (package_manifest, dependency_version)|
+                     -> Result<HashMap<_, _>, LintError> {
+                        let packages_using_this_dependency_version: &mut Vec<String> =
                             accumulator.entry(dependency_version).or_default();
                         packages_using_this_dependency_version.push(
                             package_manifest
                                 .path()
-                                .into_os_string()
-                                .into_string()
-                                .expect("Path not UTF-8 encoded"),
+                                .to_str()
+                                .map(ToOwned::to_owned)
+                                .ok_or_else(|| {
+                                    LintErrorKind::InvalidUtf8(package_manifest.path())
+                                })?,
                         );
-                        accumulator
+                        Ok(accumulator)
                     },
-                );
+                )?;
 
         if package_manifests_by_dependency_version.keys().len() <= 1 {
             return Ok(());
