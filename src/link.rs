@@ -178,8 +178,11 @@ impl From<InvalidUtf8Error> for InternalError {
 
 // Create a tsconfig.json file in each parent directory to an internal package.
 // This permits us to compile the monorepo from the top down.
-fn link_children_packages(root: &Path, lerna_manifest: &MonorepoManifest) -> Result<(), LinkError> {
-    out_of_date_parent_project_references(root, lerna_manifest)?.try_for_each(
+fn link_children_packages(
+    root: &Path,
+    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
+) -> Result<(), LinkError> {
+    out_of_date_parent_project_references(root, package_manifests_by_package_name)?.try_for_each(
         |OutOfDateParentProjectReferences {
              mut tsconfig,
              desired_references,
@@ -193,9 +196,9 @@ fn link_children_packages(root: &Path, lerna_manifest: &MonorepoManifest) -> Res
 
 fn link_package_dependencies(
     root: &Path,
-    lerna_manifest: &MonorepoManifest,
+    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
 ) -> Result<(), LinkError> {
-    out_of_date_package_project_references(root, lerna_manifest)?
+    out_of_date_package_project_references(root, package_manifests_by_package_name)?
         .filter_map(
             |OutOfDatePackageProjectReferences {
                  mut tsconfig,
@@ -238,8 +241,10 @@ where
 {
     fn inner(root: &Path) -> Result<(), LinkError> {
         let lerna_manifest = MonorepoManifest::from_directory(root)?;
-        link_children_packages(root, &lerna_manifest)?;
-        link_package_dependencies(root, &lerna_manifest)?;
+        let package_manifests_by_package_name =
+            lerna_manifest.package_manifests_by_package_name()?;
+        link_children_packages(root, &package_manifests_by_package_name)?;
+        link_package_dependencies(root, &package_manifests_by_package_name)?;
         // TODO(7): create `tsconfig.settings.json` files
         Ok(())
     }
@@ -330,10 +335,10 @@ pub enum LinkLintErrorKind {
 
 fn out_of_date_parent_project_references(
     root: &Path,
-    lerna_manifest: &MonorepoManifest,
+    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
 ) -> Result<impl Iterator<Item = OutOfDateParentProjectReferences>, InternalError> {
-    let iter = lerna_manifest
-        .internal_package_manifests()?
+    let iter = package_manifests_by_package_name
+        .values()
         .try_fold(HashMap::default(), key_children_by_parent)?
         .into_iter()
         .map(|(directory, children)| {
@@ -357,18 +362,15 @@ fn out_of_date_parent_project_references(
 
 fn out_of_date_package_project_references(
     root: &Path,
-    lerna_manifest: &MonorepoManifest,
+    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
 ) -> Result<impl Iterator<Item = OutOfDatePackageProjectReferences>, InternalError> {
-    // NOTE: this line calls LernaManifest::get_internal_package_manifests (the sloweset function) twice
-    let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
-
-    let iter = package_manifest_by_package_name
+    let iter = package_manifests_by_package_name
         .values()
         .map(|package_manifest| {
             let package_directory = package_manifest.directory();
             let tsconfig = TypescriptConfig::from_directory(root, &package_directory)?;
             let internal_dependencies =
-                package_manifest.internal_dependencies_iter(&package_manifest_by_package_name);
+                package_manifest.internal_dependencies_iter(&package_manifests_by_package_name);
 
             let desired_references: Vec<TypescriptProjectReference> = {
                 let mut typescript_project_references: Vec<String> = internal_dependencies
@@ -423,12 +425,16 @@ where
 {
     fn inner(root: &Path) -> Result<(), LinkLintError> {
         let lerna_manifest = MonorepoManifest::from_directory(root)?;
+        let package_manifests_by_package_name =
+            lerna_manifest.package_manifests_by_package_name()?;
 
         let is_children_link_success =
-            out_of_date_parent_project_references(root, &lerna_manifest)?.map(Into::into);
+            out_of_date_parent_project_references(root, &package_manifests_by_package_name)?
+                .map(Into::into);
 
         let is_dependencies_link_success =
-            out_of_date_package_project_references(root, &lerna_manifest)?.map(Into::into);
+            out_of_date_package_project_references(root, &package_manifests_by_package_name)?
+                .map(Into::into);
 
         let lint_issues: AllOutOfDateTypescriptConfig = is_children_link_success
             .chain(is_dependencies_link_success)

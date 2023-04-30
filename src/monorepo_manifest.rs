@@ -33,8 +33,132 @@ pub struct MonorepoManifest {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub struct EnumeratePackageManifestsError {
-    pub kind: EnumeratePackageManifestsErrorKind,
+pub struct GlobError {
+    pub kind: GlobErrorKind,
+}
+
+impl Display for GlobError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to enumerate monorepo packages")
+    }
+}
+
+impl std::error::Error for GlobError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl From<GlobErrorKind> for GlobError {
+    fn from(kind: GlobErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+#[derive(Debug)]
+pub enum GlobErrorKind {
+    #[non_exhaustive]
+    GlobNotValidUtf8(PathBuf),
+    #[non_exhaustive]
+    GlobWalkBuilderError(globwalk::GlobError),
+}
+
+impl Display for GlobErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GlobErrorKind::GlobNotValidUtf8(glob) => {
+                write!(f, "glob cannot be expressed in UTF-8: {:?}", glob)
+            }
+            GlobErrorKind::GlobWalkBuilderError(_) => {
+                write!(f, "unable to build glob walker")
+            }
+        }
+    }
+}
+
+impl std::error::Error for GlobErrorKind {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self {
+            GlobErrorKind::GlobNotValidUtf8(_) => None,
+            GlobErrorKind::GlobWalkBuilderError(err) => Some(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct WalkError {
+    pub kind: WalkErrorKind,
+}
+
+impl Display for WalkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to enumerate monorepo packages")
+    }
+}
+
+impl std::error::Error for WalkError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.kind)
+    }
+}
+
+impl From<globwalk::WalkError> for WalkError {
+    fn from(err: globwalk::WalkError) -> Self {
+        Self {
+            kind: WalkErrorKind::GlobWalkError(err),
+        }
+    }
+}
+
+impl From<WalkErrorKind> for WalkError {
+    fn from(kind: WalkErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+#[derive(Debug)]
+pub enum WalkErrorKind {
+    #[non_exhaustive]
+    GlobWalkError(globwalk::WalkError),
+    #[non_exhaustive]
+    FromFile(FromFileError),
+    #[non_exhaustive]
+    PackageInMonorepoRoot(PathBuf),
+}
+
+impl Display for WalkErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WalkErrorKind::FromFile(_) => {
+                write!(f, "unable to reading file")
+            }
+            WalkErrorKind::GlobWalkError(_) => {
+                write!(f, "error walking directory tree")
+            }
+            WalkErrorKind::PackageInMonorepoRoot(path) => {
+                write!(f, "package in monorepo root: {:?}", path)
+            }
+        }
+    }
+}
+
+impl std::error::Error for WalkErrorKind {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self {
+            WalkErrorKind::FromFile(err) => err.source(),
+            WalkErrorKind::GlobWalkError(err) => Some(err),
+            WalkErrorKind::PackageInMonorepoRoot(_) => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum EnumeratePackageManifestsError {
+    #[non_exhaustive]
+    GlobError(GlobError),
+    #[non_exhaustive]
+    WalkError(WalkError),
 }
 
 impl Display for EnumeratePackageManifestsError {
@@ -45,85 +169,36 @@ impl Display for EnumeratePackageManifestsError {
 
 impl std::error::Error for EnumeratePackageManifestsError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.kind)
-    }
-}
-
-impl From<globwalk::WalkError> for EnumeratePackageManifestsError {
-    fn from(err: globwalk::WalkError) -> Self {
-        Self {
-            kind: EnumeratePackageManifestsErrorKind::GlobWalkError(err),
-        }
-    }
-}
-
-impl From<EnumeratePackageManifestsErrorKind> for EnumeratePackageManifestsError {
-    fn from(kind: EnumeratePackageManifestsErrorKind) -> Self {
-        Self { kind }
-    }
-}
-
-#[derive(Debug)]
-pub enum EnumeratePackageManifestsErrorKind {
-    #[non_exhaustive]
-    GlobNotValidUtf8(PathBuf),
-    #[non_exhaustive]
-    GlobWalkBuilderError(globwalk::GlobError),
-    #[non_exhaustive]
-    GlobWalkError(globwalk::WalkError),
-    #[non_exhaustive]
-    FromFile(FromFileError),
-    #[non_exhaustive]
-    PackageInMonorepoRoot(PathBuf),
-}
-
-impl Display for EnumeratePackageManifestsErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(glob) => {
-                write!(f, "glob cannot be expressed in UTF-8: {:?}", glob)
-            }
-            EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(_) => {
-                write!(f, "unable to build glob walker")
-            }
-            EnumeratePackageManifestsErrorKind::FromFile(_) => {
-                write!(f, "unable to reading file")
-            }
-            EnumeratePackageManifestsErrorKind::GlobWalkError(_) => {
-                write!(f, "error walking directory tree")
-            }
-            EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(path) => {
-                write!(f, "package in monorepo root: {:?}", path)
-            }
-        }
-    }
-}
-
-impl std::error::Error for EnumeratePackageManifestsErrorKind {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self {
-            EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(_) => None,
-            EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err) => Some(err),
-            EnumeratePackageManifestsErrorKind::FromFile(err) => err.source(),
-            EnumeratePackageManifestsErrorKind::GlobWalkError(err) => Some(err),
-            EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(_) => None,
+            EnumeratePackageManifestsError::GlobError(err) => Some(err),
+            EnumeratePackageManifestsError::WalkError(err) => Some(err),
         }
+    }
+}
+
+impl From<GlobError> for EnumeratePackageManifestsError {
+    fn from(err: GlobError) -> Self {
+        Self::GlobError(err)
+    }
+}
+
+impl From<WalkError> for EnumeratePackageManifestsError {
+    fn from(err: WalkError) -> Self {
+        Self::WalkError(err)
     }
 }
 
 fn get_internal_package_manifests(
     monorepo_root: &Path,
     package_globs: &[PackageManifestGlob],
-) -> Result<impl Iterator<Item = PackageManifest>, EnumeratePackageManifestsError> {
+) -> Result<impl Iterator<Item = Result<PackageManifest, WalkError>>, GlobError> {
     let mut package_manifests: Vec<String> = package_globs
         .iter()
         .map(|package_manifest_glob| {
             let glob = Path::new(&package_manifest_glob.0).join("package.json");
-            glob.to_str()
-                .map(ToOwned::to_owned)
-                .ok_or(EnumeratePackageManifestsError {
-                    kind: EnumeratePackageManifestsErrorKind::GlobNotValidUtf8(glob),
-                })
+            glob.to_str().map(ToOwned::to_owned).ok_or(GlobError {
+                kind: GlobErrorKind::GlobNotValidUtf8(glob),
+            })
         })
         .collect::<Result<_, _>>()?;
 
@@ -133,37 +208,32 @@ fn get_internal_package_manifests(
     // Take ownership so we can move this value into the parallel_map
     let monorepo_root = monorepo_root.to_owned();
 
-    let package_manifests: Vec<_> =
+    let package_manifests_iter =
         GlobWalkerBuilder::from_patterns(&monorepo_root, &package_manifests)
             .file_type(FileType::FILE)
             .min_depth(1)
             .build()
-            .map_err(|err| EnumeratePackageManifestsError {
-                kind: EnumeratePackageManifestsErrorKind::GlobWalkBuilderError(err),
+            .map_err(|err| GlobError {
+                kind: GlobErrorKind::GlobWalkBuilderError(err),
             })?
             .parallel_map_custom(
                 |options| options.threads(32),
-                move |dir_entry| -> Result<PackageManifest, EnumeratePackageManifestsError> {
+                move |dir_entry| -> Result<PackageManifest, WalkError> {
                     let dir_entry = dir_entry?;
                     let path = dir_entry.path();
                     let manifest = PackageManifest::from_directory(
                         &monorepo_root,
                         path.parent()
-                            .ok_or_else(|| {
-                                EnumeratePackageManifestsErrorKind::PackageInMonorepoRoot(
-                                    path.to_owned(),
-                                )
-                            })?
+                            .ok_or_else(|| WalkErrorKind::PackageInMonorepoRoot(path.to_owned()))?
                             .strip_prefix(&monorepo_root)
                             .expect("expected all files to be children of monorepo root"),
                     )
-                    .map_err(EnumeratePackageManifestsErrorKind::FromFile)?;
+                    .map_err(WalkErrorKind::FromFile)?;
                     Ok(manifest)
                 },
-            )
-            .collect::<Result<_, _>>()?;
+            );
 
-    Ok(package_manifests.into_iter())
+    Ok(package_manifests_iter)
 }
 
 impl MonorepoManifest {
@@ -196,14 +266,18 @@ impl MonorepoManifest {
     pub fn package_manifests_by_package_name(
         &self,
     ) -> Result<HashMap<String, PackageManifest>, EnumeratePackageManifestsError> {
-        Ok(get_internal_package_manifests(&self.root, &self.globs)?
-            .map(|manifest| (manifest.contents.name.to_owned(), manifest))
-            .collect())
+        let map = get_internal_package_manifests(&self.root, &self.globs)?
+            .map(|maybe_manifest| -> Result<_, WalkError> {
+                let manifest = maybe_manifest?;
+                Ok((manifest.contents.name.to_owned(), manifest))
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(map)
     }
 
     pub fn internal_package_manifests(
         &self,
-    ) -> Result<impl Iterator<Item = PackageManifest>, EnumeratePackageManifestsError> {
+    ) -> Result<impl Iterator<Item = Result<PackageManifest, WalkError>>, GlobError> {
         get_internal_package_manifests(&self.root, &self.globs)
     }
 }

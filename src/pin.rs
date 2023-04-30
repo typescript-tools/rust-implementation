@@ -139,25 +139,27 @@ where
             }
             let dependencies = dependencies.unwrap();
 
-            dependencies.into_iter().try_for_each(
-                |(dependency_name, dependency_version)| match &dependency_version {
-                    serde_json::Value::String(dep_version) => {
-                        if let Some(expected) = needs_modification(
-                            dependency_name,
-                            dep_version,
-                            &package_version_by_package_name,
-                        ) {
-                            *dependency_version = expected.to_owned().into();
-                            dirty = true;
+            dependencies
+                .into_iter()
+                .try_for_each(
+                    |(dependency_name, dependency_version)| match &dependency_version {
+                        serde_json::Value::String(dep_version) => {
+                            if let Some(expected) = needs_modification(
+                                dependency_name,
+                                dep_version,
+                                &package_version_by_package_name,
+                            ) {
+                                *dependency_version = expected.to_owned().into();
+                                dirty = true;
+                            }
+                            Ok(())
                         }
-                        Ok(())
-                    }
-                    _ => Err(PinErrorKind::NonStringVersionNumber {
-                        package_name: package_name.clone(),
-                        dependency_name: dependency_name.to_owned(),
-                    }),
-                },
-            )?;
+                        _ => Err(PinErrorKind::NonStringVersionNumber {
+                            package_name: package_name.clone(),
+                            dependency_name: dependency_name.to_owned(),
+                        }),
+                    },
+                )?;
         }
 
         if dirty {
