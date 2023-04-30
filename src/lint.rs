@@ -49,7 +49,7 @@ pub enum LintErrorKind {
     EnumeratePackageManifests(EnumeratePackageManifestsError),
     #[non_exhaustive]
     UnknownDependency(String),
-    // FIXME: this isn't an error
+    // REFACTOR: move display logic into this type
     #[non_exhaustive]
     UnexpectedInternalDependencyVersion,
     #[non_exhaustive]
