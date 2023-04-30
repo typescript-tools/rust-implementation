@@ -85,22 +85,6 @@ pub enum LinkErrorKind {
     Write(WriteError),
 }
 
-impl From<InternalError> for LinkError {
-    fn from(err: InternalError) -> Self {
-        match err {
-            InternalError::EnumeratePackageManifests(err) => Self {
-                kind: LinkErrorKind::EnumeratePackageManifests(err),
-            },
-            InternalError::FromFile(err) => Self {
-                kind: LinkErrorKind::FromFile(err),
-            },
-            InternalError::InvalidUtf8(err) => Self {
-                kind: LinkErrorKind::InvalidUtf8(err),
-            },
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct InvalidUtf8Error(OsString);
 
@@ -149,31 +133,6 @@ fn create_project_references(mut children: Vec<String>) -> Vec<TypescriptProject
         .into_iter()
         .map(|path| TypescriptProjectReference { path })
         .collect()
-}
-
-#[derive(Debug)]
-enum InternalError {
-    EnumeratePackageManifests(EnumeratePackageManifestsError),
-    FromFile(FromFileError),
-    InvalidUtf8(InvalidUtf8Error),
-}
-
-impl From<EnumeratePackageManifestsError> for InternalError {
-    fn from(err: EnumeratePackageManifestsError) -> Self {
-        Self::EnumeratePackageManifests(err)
-    }
-}
-
-impl From<FromFileError> for InternalError {
-    fn from(err: FromFileError) -> Self {
-        Self::FromFile(err)
-    }
-}
-
-impl From<InvalidUtf8Error> for InternalError {
-    fn from(err: InvalidUtf8Error) -> Self {
-        Self::InvalidUtf8(err)
-    }
 }
 
 // Create a tsconfig.json file in each parent directory to an internal package.
@@ -305,22 +264,6 @@ impl From<InvalidUtf8Error> for LinkLintError {
     fn from(err: InvalidUtf8Error) -> Self {
         Self {
             kind: LinkLintErrorKind::InvalidUtf8(err),
-        }
-    }
-}
-
-impl From<InternalError> for LinkLintError {
-    fn from(err: InternalError) -> Self {
-        match err {
-            InternalError::EnumeratePackageManifests(err) => Self {
-                kind: LinkLintErrorKind::EnumeratePackageManifests(err),
-            },
-            InternalError::FromFile(err) => Self {
-                kind: LinkLintErrorKind::FromFile(err),
-            },
-            InternalError::InvalidUtf8(err) => Self {
-                kind: LinkLintErrorKind::InvalidUtf8(err),
-            },
         }
     }
 }
