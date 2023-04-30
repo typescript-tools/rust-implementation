@@ -1,3 +1,33 @@
+# [7.0.0](https://github.com/typescript-tools/rust-implementation/compare/v6.0.8...v7.0.0) (2023-04-30)
+
+
+### Bug Fixes
+
+* add path to error message when file cannot be parsed ([df125ec](https://github.com/typescript-tools/rust-implementation/commit/df125ec9e576c3e6aa017a77bc919da4511a6bc2))
+* do not silently ignore globwalk::WalkError ([07dc701](https://github.com/typescript-tools/rust-implementation/commit/07dc701aba47eea8e1cf23c3c2c8b4a55d66e116))
+* use anyhow to format error messages ([c3b1247](https://github.com/typescript-tools/rust-implementation/commit/c3b124711679ffa301b9621303ab32d10fdd1ba3))
+
+
+* chore!: drop support for publishing docker images ([c77fe4e](https://github.com/typescript-tools/rust-implementation/commit/c77fe4e179af7b98ed26cbbe9fb3f153f8d612fc))
+* refactor!(link): split into lint and modify functions ([e467566](https://github.com/typescript-tools/rust-implementation/commit/e4675660b15c354004cc08aeea103fa0a19895b7))
+* refactor!: remove get_dependency_group_mut from PackageManifest ([507455c](https://github.com/typescript-tools/rust-implementation/commit/507455ce748599771bc9185eb43993d8218497d2))
+* refactor!(pin): split lint and modify into separate functions ([75bae6f](https://github.com/typescript-tools/rust-implementation/commit/75bae6fc05795528255a47dde27c5ed962d69411))
+
+
+### Features
+
+* add debug to all types ([0b65085](https://github.com/typescript-tools/rust-implementation/commit/0b65085cea207d928d28866bea43c4d5270a6e94))
+* eagerly impl Eq, PartialEq, Hash for InternalDependenciesFormat ([82d35df](https://github.com/typescript-tools/rust-implementation/commit/82d35dfcd80e6fb334742ac1f8475b589a3c5b94))
+
+
+### BREAKING CHANGES
+
+* drop support for publishing docker images as a part of
+the release process
+* split link into lint and modify functions
+* remove get_dependency_group_mut from PackageManifest
+* split pin into lint and modify functions
+
 ## [6.0.8](https://github.com/typescript-tools/rust-implementation/compare/v6.0.7...v6.0.8) (2023-04-28)
 
 
