@@ -1,3 +1,12 @@
+## [7.0.1](https://github.com/typescript-tools/rust-implementation/compare/v7.0.0...v7.0.1) (2023-04-30)
+
+
+### Bug Fixes
+
+* avoid intermediate allocation ([f04409a](https://github.com/typescript-tools/rust-implementation/commit/f04409ae430d9a75eecab1f3954c07395f35119c))
+* avoid intermediate allocations ([93cb39e](https://github.com/typescript-tools/rust-implementation/commit/93cb39ea3dfd2a36d44f7b3fb647b591a86cb569))
+* remove impossible case from error enum ([a578720](https://github.com/typescript-tools/rust-implementation/commit/a5787200c9de0d12a11d2bff91ac2ea3403b833d))
+
 # [7.0.0](https://github.com/typescript-tools/rust-implementation/compare/v6.0.8...v7.0.0) (2023-04-30)
 
 
