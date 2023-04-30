@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::configuration_file::ConfigurationFile;
@@ -29,7 +28,6 @@ impl std::error::Error for QueryError {
         match &self.kind {
             QueryErrorKind::FromFile(err) => Some(err),
             QueryErrorKind::EnumeratePackageManifests(err) => Some(err),
-            QueryErrorKind::Write(err) => Some(err),
             QueryErrorKind::PathInvalidUtf8(_) => None,
         }
     }
@@ -51,22 +49,12 @@ impl From<EnumeratePackageManifestsError> for QueryError {
     }
 }
 
-impl From<io::Error> for QueryError {
-    fn from(err: io::Error) -> Self {
-        Self {
-            kind: QueryErrorKind::Write(err),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum QueryErrorKind {
     #[non_exhaustive]
     FromFile(FromFileError),
     #[non_exhaustive]
     EnumeratePackageManifests(EnumeratePackageManifestsError),
-    #[non_exhaustive]
-    Write(io::Error),
     #[non_exhaustive]
     PathInvalidUtf8(PathBuf),
 }
