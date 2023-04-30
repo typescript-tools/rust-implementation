@@ -397,8 +397,7 @@ fn out_of_date_package_project_references(
                 .get("references")
                 .map(|value| {
                     serde_json::from_value::<Vec<TypescriptProjectReference>>(value.clone())
-                        // FIXME: this is an incorrect error message
-                        .expect("Value starting as JSON should be serializable")
+                        .expect("value starting as JSON should be serializable")
                 })
                 .unwrap_or_default();
 
@@ -423,8 +422,7 @@ where
     P: AsRef<Path>,
 {
     fn inner(root: &Path) -> Result<(), LinkLintError> {
-        let lerna_manifest =
-            MonorepoManifest::from_directory(root).expect("Unable to read monorepo manifest");
+        let lerna_manifest = MonorepoManifest::from_directory(root)?;
 
         let is_children_link_success =
             out_of_date_parent_project_references(root, &lerna_manifest)?.map(Into::into);
