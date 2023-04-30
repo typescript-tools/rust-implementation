@@ -11,7 +11,7 @@ use crate::io::FromFileError;
 use crate::monorepo_manifest::{EnumeratePackageManifestsError, MonorepoManifest};
 use crate::out_of_date_project_references::{
     AllOutOfDateTypescriptConfig, OutOfDatePackageProjectReferences,
-    OutOfDateParentProjectReferences,
+    OutOfDateParentProjectReferences, OutOfDateTypescriptConfig,
 };
 use crate::package_manifest::PackageManifest;
 use crate::typescript_config::{
@@ -183,11 +183,11 @@ fn link_children_packages(
     package_manifests_by_package_name: &HashMap<String, PackageManifest>,
 ) -> Result<(), LinkError> {
     out_of_date_parent_project_references(root, package_manifests_by_package_name)?.try_for_each(
-        |OutOfDateParentProjectReferences {
-             mut tsconfig,
-             desired_references,
-         }|
-         -> Result<(), LinkError> {
+        |maybe_parent_project_references| -> Result<(), LinkError> {
+            let OutOfDateParentProjectReferences {
+                mut tsconfig,
+                desired_references,
+            } = maybe_parent_project_references?;
             tsconfig.contents.references = desired_references;
             Ok(TypescriptParentProjectReference::write(root, tsconfig)?)
         },
@@ -199,11 +199,12 @@ fn link_package_dependencies(
     package_manifests_by_package_name: &HashMap<String, PackageManifest>,
 ) -> Result<(), LinkError> {
     out_of_date_package_project_references(root, package_manifests_by_package_name)?
-        .filter_map(
-            |OutOfDatePackageProjectReferences {
-                 mut tsconfig,
-                 desired_references,
-             }| {
+        .map(
+            |maybe_package_project_references| -> Result<Option<_>, FromFileError> {
+                let OutOfDatePackageProjectReferences {
+                    mut tsconfig,
+                    desired_references,
+                } = maybe_package_project_references?;
                 // Compare the current references against the desired references
                 let current_project_references = &tsconfig
                     .contents
@@ -216,7 +217,7 @@ fn link_package_dependencies(
 
                 let needs_update = !current_project_references.eq(&desired_references);
                 if !needs_update {
-                    return None;
+                    return Ok(None);
                 }
 
                 // Update the current tsconfig with the desired references
@@ -227,10 +228,14 @@ fn link_package_dependencies(
                     ),
                 );
 
-                Some(tsconfig)
+                Ok(Some(tsconfig))
             },
         )
-        .map(|tsconfig| -> Result<(), LinkError> { Ok(TypescriptConfig::write(root, tsconfig)?) })
+        .filter_map(|result_of_option| result_of_option.transpose())
+        .map(|maybe_tsconfig| -> Result<(), LinkError> {
+            let tsconfig = maybe_tsconfig?;
+            Ok(TypescriptConfig::write(root, tsconfig)?)
+        })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(())
 }
@@ -296,6 +301,14 @@ impl From<FromFileError> for LinkLintError {
     }
 }
 
+impl From<InvalidUtf8Error> for LinkLintError {
+    fn from(err: InvalidUtf8Error) -> Self {
+        Self {
+            kind: LinkLintErrorKind::InvalidUtf8(err),
+        }
+    }
+}
+
 impl From<InternalError> for LinkLintError {
     fn from(err: InternalError) -> Self {
         match err {
@@ -333,17 +346,20 @@ pub enum LinkLintErrorKind {
     ProjectReferencesOutOfDate(AllOutOfDateTypescriptConfig),
 }
 
-fn out_of_date_parent_project_references(
-    root: &Path,
-    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
-) -> Result<impl Iterator<Item = OutOfDateParentProjectReferences>, InternalError> {
+fn out_of_date_parent_project_references<'a>(
+    root: &'a Path,
+    package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
+) -> Result<
+    impl Iterator<Item = Result<OutOfDateParentProjectReferences, FromFileError>> + 'a,
+    InvalidUtf8Error,
+> {
     let iter = package_manifests_by_package_name
         .values()
         .try_fold(HashMap::default(), key_children_by_parent)?
         .into_iter()
-        .map(|(directory, children)| {
+        .map(move |(directory, children)| {
             let desired_references = create_project_references(children);
-            let tsconfig = TypescriptParentProjectReference::from_directory(root, &directory)?;
+            let tsconfig = TypescriptParentProjectReference::from_directory(&root, &directory)?;
             let current_project_references = &tsconfig.contents.references;
             let needs_update = !current_project_references.eq(&desired_references);
             Ok(match needs_update {
@@ -354,21 +370,22 @@ fn out_of_date_parent_project_references(
                 false => None,
             })
         })
-        .collect::<Result<Vec<_>, FromFileError>>()?
-        .into_iter()
-        .flatten();
+        .filter_map(|maybe_value| maybe_value.transpose());
     Ok(iter)
 }
 
-fn out_of_date_package_project_references(
-    root: &Path,
-    package_manifests_by_package_name: &HashMap<String, PackageManifest>,
-) -> Result<impl Iterator<Item = OutOfDatePackageProjectReferences>, InternalError> {
+fn out_of_date_package_project_references<'a>(
+    root: &'a Path,
+    package_manifests_by_package_name: &'a HashMap<String, PackageManifest>,
+) -> Result<
+    impl Iterator<Item = Result<OutOfDatePackageProjectReferences, FromFileError>> + 'a,
+    InvalidUtf8Error,
+> {
     let iter = package_manifests_by_package_name
         .values()
-        .map(|package_manifest| {
+        .map(move |package_manifest| {
             let package_directory = package_manifest.directory();
-            let tsconfig = TypescriptConfig::from_directory(root, &package_directory)?;
+            let tsconfig = TypescriptConfig::from_directory(&root, &package_directory)?;
             let internal_dependencies =
                 package_manifest.internal_dependencies_iter(&package_manifests_by_package_name);
 
@@ -385,6 +402,7 @@ fn out_of_date_package_project_references(
                             .to_string()
                     })
                     .collect::<Vec<_>>();
+                // REFACTOR: can drop a `collect` if we implement Ord on TypescriptProjectReference
                 typescript_project_references.sort_unstable();
 
                 typescript_project_references
@@ -412,9 +430,7 @@ fn out_of_date_package_project_references(
                 false => None,
             })
         })
-        .collect::<Result<Vec<_>, FromFileError>>()?
-        .into_iter()
-        .flatten();
+        .filter_map(|maybe_package_project_reference| maybe_package_project_reference.transpose());
 
     Ok(iter)
 }
@@ -429,16 +445,22 @@ where
             lerna_manifest.package_manifests_by_package_name()?;
 
         let is_children_link_success =
-            out_of_date_parent_project_references(root, &package_manifests_by_package_name)?
-                .map(Into::into);
+            out_of_date_parent_project_references(root, &package_manifests_by_package_name)?.map(
+                |result| -> Result<OutOfDateTypescriptConfig, FromFileError> {
+                    result.map(Into::into)
+                },
+            );
 
         let is_dependencies_link_success =
-            out_of_date_package_project_references(root, &package_manifests_by_package_name)?
-                .map(Into::into);
+            out_of_date_package_project_references(root, &package_manifests_by_package_name)?.map(
+                |result| -> Result<OutOfDateTypescriptConfig, FromFileError> {
+                    result.map(Into::into)
+                },
+            );
 
         let lint_issues: AllOutOfDateTypescriptConfig = is_children_link_success
             .chain(is_dependencies_link_success)
-            .collect();
+            .collect::<Result<_, _>>()?;
 
         match lint_issues.is_empty() {
             true => Ok(()),
