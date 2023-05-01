@@ -1,3 +1,10 @@
+## [7.0.3](https://github.com/typescript-tools/rust-implementation/compare/v7.0.2...v7.0.3) (2023-05-01)
+
+
+### Bug Fixes
+
+* return an iterator of transitive dependency names ([0b152ea](https://github.com/typescript-tools/rust-implementation/commit/0b152ea497f7ff957faa04ea8e8d9fd414db852c))
+
 ## [7.0.2](https://github.com/typescript-tools/rust-implementation/compare/v7.0.1...v7.0.2) (2023-04-30)
 
 
