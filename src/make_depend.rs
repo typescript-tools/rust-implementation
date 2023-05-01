@@ -83,8 +83,9 @@ pub fn make_dependency_makefile(
     // determine the complete set of internal dependencies (and self!)
     let package_manifest_by_package_name = lerna_manifest.package_manifests_by_package_name()?;
 
-    let internal_dependencies_exclusive = package_manifest
-        .transitive_internal_dependency_package_names_exclusive(&package_manifest_by_package_name);
+    let internal_dependencies_exclusive: Vec<_> = package_manifest
+        .transitive_internal_dependency_package_names_exclusive(&package_manifest_by_package_name)
+        .collect();
 
     let internal_dependency_package_json_filenames_inclusive: Vec<PathBuf> = {
         let mut dependency_dirs = internal_dependencies_exclusive

@@ -124,9 +124,9 @@ impl PackageManifest {
     }
 
     pub fn transitive_internal_dependency_package_names_exclusive<'a>(
-        &self,
+        &'a self,
         package_manifest_by_package_name: &'a HashMap<String, PackageManifest>,
-    ) -> Vec<&'a PackageManifest> {
+    ) -> impl Iterator<Item = &'a PackageManifest> {
         // Depth-first search all transitive internal dependencies of package
         let mut seen_package_names = HashSet::new();
         let mut internal_dependencies = HashSet::new();
@@ -140,7 +140,7 @@ impl PackageManifest {
             for dependency in
                 current_manifest.internal_dependencies_iter(package_manifest_by_package_name)
             {
-                internal_dependencies.insert(dependency.contents.name.to_owned());
+                internal_dependencies.insert(&dependency.contents.name);
                 if !seen_package_names.contains(&dependency.contents.name) {
                     to_visit_package_manifests.push_back(dependency);
                 }
@@ -148,13 +148,12 @@ impl PackageManifest {
         }
 
         internal_dependencies
-            .iter()
+            .into_iter()
             .map(|dependency_package_name| {
                 package_manifest_by_package_name
                     .get(dependency_package_name)
                     .unwrap()
             })
-            .collect()
     }
 
     // REFACTOR: for nearness
