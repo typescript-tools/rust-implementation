@@ -1,3 +1,10 @@
+## [7.0.4](https://github.com/typescript-tools/rust-implementation/compare/v7.0.3...v7.0.4) (2023-05-03)
+
+
+### Bug Fixes
+
+* **deps:** update dependency tar to v6.1.14 ([6e2cbaa](https://github.com/typescript-tools/rust-implementation/commit/6e2cbaab969978eea4a5771e405726319fc247d0))
+
 ## [7.0.3](https://github.com/typescript-tools/rust-implementation/compare/v7.0.2...v7.0.3) (2023-05-01)
 
 
