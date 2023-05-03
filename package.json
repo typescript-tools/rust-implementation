@@ -17,7 +17,7 @@
   "dependencies": {
     "axios": "1.4.0",
     "rimraf": "4.4.1",
-    "tar": "6.1.13"
+    "tar": "6.1.14"
   },
   "devDependencies": {
     "@semantic-release-cargo/semantic-release-cargo": "2.1.75",
