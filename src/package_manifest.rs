@@ -12,7 +12,7 @@ pub struct PackageManifestFile {
     pub name: String,
     pub version: String,
     #[serde(flatten)]
-    pub extra_fields: serde_json::Value,
+    pub extra_fields: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -79,7 +79,7 @@ impl PackageManifest {
             .filter_map(|dependency_group| {
                 self.contents
                     .extra_fields
-                    .get(dependency_group)?
+                    .get(*dependency_group)?
                     .as_object()
             })
             // get the target dependency version, if exists
@@ -98,7 +98,7 @@ impl PackageManifest {
             .filter_map(|dependency_group| {
                 self.contents
                     .extra_fields
-                    .get(dependency_group)?
+                    .get(*dependency_group)?
                     .as_object()
             })
             .flat_map(|object| object.iter())
@@ -114,7 +114,7 @@ impl PackageManifest {
             .filter_map(|dependency_group| {
                 self.contents
                     .extra_fields
-                    .get(dependency_group)?
+                    .get(*dependency_group)?
                     .as_object()
             })
             // get all dependency names from all groups
