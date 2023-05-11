@@ -1,3 +1,10 @@
+## [7.0.8](https://github.com/typescript-tools/rust-implementation/compare/v7.0.7...v7.0.8) (2023-05-11)
+
+
+### Bug Fixes
+
+* narrow PackageManifest's extra_fields to Map<String, Value> ([337db14](https://github.com/typescript-tools/rust-implementation/commit/337db14b19463b221219ee905e62172782ab5891))
+
 ## [7.0.7](https://github.com/typescript-tools/rust-implementation/compare/v7.0.6...v7.0.7) (2023-05-11)
 
 
