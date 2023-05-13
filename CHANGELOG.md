@@ -1,3 +1,10 @@
+## [8.0.1](https://github.com/typescript-tools/rust-implementation/compare/v8.0.0...v8.0.1) (2023-05-13)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate anyhow to v1.0.71 ([b918658](https://github.com/typescript-tools/rust-implementation/commit/b918658107235eaeaa1017f41c44c3ef19493634))
+
 # [8.0.0](https://github.com/typescript-tools/rust-implementation/compare/v7.0.8...v8.0.0) (2023-05-13)
 
 
