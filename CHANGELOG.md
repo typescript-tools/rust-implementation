@@ -1,3 +1,16 @@
+# [8.0.0](https://github.com/typescript-tools/rust-implementation/compare/v7.0.8...v8.0.0) (2023-05-13)
+
+
+* refactor!: stop distributing via npm ([bcd1949](https://github.com/typescript-tools/rust-implementation/commit/bcd194976413571d9ff55474e6a4599a21f27ab1))
+
+
+### BREAKING CHANGES
+
+* stop distributing this package via npm
+
+The recommended ways to install are now via the Nix flake, or by
+downloading a precompiled binary via the GitHub Releases page.
+
 ## [7.0.8](https://github.com/typescript-tools/rust-implementation/compare/v7.0.7...v7.0.8) (2023-05-11)
 
 
