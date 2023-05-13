@@ -39,8 +39,6 @@ The following target triples are supported:
 - aarch64-unknown-linux-musl
 - aarch64-apple-darwin
 
-The following package managers are supported
+## Install
 
-- [x] npm
-- [ ] yarn
-- [ ] pnpm
+Install from the Nix flake or download a precompiled binary from the GitHub Releases page.
