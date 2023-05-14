@@ -16,7 +16,7 @@ fn link_should_detect_missing_project_references() {
 }
 
 #[test]
-fn link_should_correct_incorrect_project_references() -> Result<(), anyhow::Error> {
+fn link_should_correct_incorrect_project_references() -> Result<(), Box<dyn std::error::Error>> {
     // Arrange
     let template = "test_data/incorrect_project_references_playground";
     let root = TempDir::new("typescript-tools-test-link")?;

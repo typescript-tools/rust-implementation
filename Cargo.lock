@@ -1438,7 +1438,6 @@ dependencies = [
 name = "typescript_tools"
 version = "8.0.1"
 dependencies = [
- "anyhow",
  "askama",
  "assert-json-diff",
  "clap 4.2.7",

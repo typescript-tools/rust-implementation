@@ -4,13 +4,14 @@ use std::io::{self, Write};
 
 use clap::Parser;
 
+mod little_anyhow;
 mod opts;
 
 use opts::Action;
 use typescript_tools::{link, lint, make_depend, pin, query};
 
 // RESUME: why is this not printing with display?
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<(), little_anyhow::Error> {
     let args = opts::Opts::parse();
 
     match args.subcommand {

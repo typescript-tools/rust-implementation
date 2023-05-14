@@ -15,7 +15,7 @@ fn pin_should_detect_unpinned_internal_dependency() {
 }
 
 #[test]
-fn pin_should_correct_unpinned_internal_dependency() -> Result<(), anyhow::Error> {
+fn pin_should_correct_unpinned_internal_dependency() -> Result<(), Box<dyn std::error::Error>> {
     // Arrange
     let template = "test_data/unpinned_internal_dependency_playground";
     let root = TempDir::new("typescript-tools-test-pin")?;
