@@ -1,3 +1,10 @@
+## [8.0.2](https://github.com/typescript-tools/rust-implementation/compare/v8.0.1...v8.0.2) (2023-05-14)
+
+
+### Bug Fixes
+
+* remove dependency on anyhow ([ea45cfa](https://github.com/typescript-tools/rust-implementation/commit/ea45cfa99a50359a561105503cbc81e2a5698a3c))
+
 ## [8.0.1](https://github.com/typescript-tools/rust-implementation/compare/v8.0.0...v8.0.1) (2023-05-13)
 
 
