@@ -1436,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "typescript_tools"
-version = "8.0.6"
+version = "8.0.7"
 dependencies = [
  "askama",
  "assert-json-diff",
