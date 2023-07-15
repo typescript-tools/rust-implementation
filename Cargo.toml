@@ -34,7 +34,7 @@ globwalk = "=0.8.1"
 pariter = "=0.5.1"
 pathdiff = "=0.2.1"
 serde = { version = "=1.0.171", features = ["derive"] }
-serde_json = { version = "=1.0.102", features = ["preserve_order"] }
+serde_json = { version = "=1.0.103", features = ["preserve_order"] }
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"
