@@ -1,6 +1,6 @@
 [package]
 name = "typescript_tools"
-version = "8.0.24"
+version = "8.0.25"
 edition = "2021"
 authors = ["Eric Crosson <eric.s.crosson@utexas.edu>"]
 license = "ISC"
