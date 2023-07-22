@@ -1,3 +1,10 @@
+## [8.0.30](https://github.com/typescript-tools/rust-implementation/compare/v8.0.29...v8.0.30) (2023-07-22)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate clap to v4.3.19 ([2c79eea](https://github.com/typescript-tools/rust-implementation/commit/2c79eeab8e8e5451a6f1663cdc6080b22ff26346))
+
 ## [8.0.29](https://github.com/typescript-tools/rust-implementation/compare/v8.0.28...v8.0.29) (2023-07-21)
 
 
