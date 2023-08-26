@@ -1,3 +1,10 @@
+## [8.0.49](https://github.com/typescript-tools/rust-implementation/compare/v8.0.48...v8.0.49) (2023-08-26)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate serde to v1.0.188 ([56ce951](https://github.com/typescript-tools/rust-implementation/commit/56ce95143d60deaef297b3b14e8c106e0d6a6955))
+
 ## [8.0.48](https://github.com/typescript-tools/rust-implementation/compare/v8.0.47...v8.0.48) (2023-08-25)
 
 
