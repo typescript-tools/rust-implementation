@@ -4,6 +4,9 @@
 
 [build status]: https://github.com/typescript-tools/rust-implementation/actions/workflows/release.yml/badge.svg?event=push
 
+> **Note**
+> This repository has been moved to https://github.com/typescript-tools/monorepo
+
 The `typescript-tools` are an opinionated collection of utilities for working with
 TypeScript monorepos. Read more in the [typescript-tools spec].
 
